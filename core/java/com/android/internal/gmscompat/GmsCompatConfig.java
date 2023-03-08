@@ -5,11 +5,16 @@
 
 package com.android.internal.gmscompat;
 
+import android.app.ActivityThread;
+import android.app.compat.gms.GmsCompat;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 
 import com.android.internal.gmscompat.flags.GmsFlag;
+
+import java.util.ArrayList;
 
 // Instances of this object should be immutable after publication, make sure to never change it afterwards
 public class GmsCompatConfig implements Parcelable {
@@ -17,6 +22,13 @@ public class GmsCompatConfig implements Parcelable {
     public final ArrayMap<String, ArrayMap<String, GmsFlag>> flags = new ArrayMap<>();
     public ArrayMap<String, GmsFlag> gservicesFlags;
     public final ArrayMap<String, ArrayMap<String, StubDef>> stubs = new ArrayMap<>();
+    // keys are namespaces, values are regexes of flag names that should be forced to default value
+    public final ArrayMap<String, ArrayList<String>> forceDefaultFlagsMap = new ArrayMap<>();
+    // keys are package names, values are list of permissions self-checks of which should be spoofed
+    public final ArrayMap<String, ArrayList<String>> spoofSelfPermissionChecksMap = new ArrayMap<>();
+
+    // set only in processes for which GmsCompat is enabled, to speed up lookups
+    public ArraySet<String> spoofSelfPermissionChecks;
 
     public long maxGmsCoreVersion;
     public long maxPlayStoreVersion;
@@ -74,6 +86,27 @@ public class GmsCompatConfig implements Parcelable {
 
         p.writeLong(maxGmsCoreVersion);
         p.writeLong(maxPlayStoreVersion);
+
+        writeArrayMapStringStringList(forceDefaultFlagsMap, p);
+        writeArrayMapStringStringList(spoofSelfPermissionChecksMap, p);
+    }
+
+    static void writeArrayMapStringStringList(ArrayMap<String, ArrayList<String>> map, Parcel p) {
+        int cnt = map.size();
+        p.writeInt(cnt);
+        for (int i = 0; i < cnt; ++i) {
+            p.writeString(map.keyAt(i));
+            p.writeStringList(map.valueAt(i));
+        }
+    }
+
+    static void readArrayMapStringStringList(Parcel p, ArrayMap<String, ArrayList<String>> map) {
+        int cnt = p.readInt();
+        map.ensureCapacity(cnt);
+        for (int i = 0; i < cnt; ++i) {
+            String namespace = p.readString();
+            map.put(namespace, p.createStringArrayList());
+        }
     }
 
     public static final Creator<GmsCompatConfig> CREATOR = new Creator<>() {
@@ -102,6 +135,15 @@ public class GmsCompatConfig implements Parcelable {
             r.maxGmsCoreVersion = p.readLong();
             r.maxPlayStoreVersion = p.readLong();
 
+            readArrayMapStringStringList(p, r.forceDefaultFlagsMap);
+            readArrayMapStringStringList(p, r.spoofSelfPermissionChecksMap);
+
+            if (GmsCompat.isEnabled()) {
+                ArrayList<String> perms = r.spoofSelfPermissionChecksMap.get(ActivityThread.currentPackageName());
+                r.spoofSelfPermissionChecks = perms != null ?
+                        new ArraySet<>(perms) :
+                        new ArraySet<>();
+            }
             return r;
         }
 
