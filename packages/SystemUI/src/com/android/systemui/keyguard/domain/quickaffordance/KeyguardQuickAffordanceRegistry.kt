@@ -20,16 +20,31 @@ package com.android.systemui.keyguard.domain.quickaffordance
 import android.content.Context
 import android.provider.Settings
 
-import com.android.systemui.keyguard.domain.model.KeyguardQuickAffordancePosition
+import com.android.systemui.keyguard.data.quickaffordance.BuiltInKeyguardQuickAffordanceKeys.CAMERA
+import com.android.systemui.keyguard.data.quickaffordance.BuiltInKeyguardQuickAffordanceKeys.DO_NOT_DISTURB
+import com.android.systemui.keyguard.data.quickaffordance.BuiltInKeyguardQuickAffordanceKeys.FLASHLIGHT
+import com.android.systemui.keyguard.data.quickaffordance.BuiltInKeyguardQuickAffordanceKeys.HOME_CONTROLS
+import com.android.systemui.keyguard.data.quickaffordance.BuiltInKeyguardQuickAffordanceKeys.QR_CODE_SCANNER
+import com.android.systemui.keyguard.data.quickaffordance.BuiltInKeyguardQuickAffordanceKeys.QUICK_ACCESS_WALLET
+
+import com.android.systemui.keyguard.data.quickaffordance.CameraQuickAffordanceConfig
+import com.android.systemui.keyguard.data.quickaffordance.DoNotDisturbQuickAffordanceConfig
+import com.android.systemui.keyguard.data.quickaffordance.FlashlightQuickAffordanceConfig
+import com.android.systemui.keyguard.data.quickaffordance.HomeControlsKeyguardQuickAffordanceConfig
+import com.android.systemui.keyguard.data.quickaffordance.KeyguardQuickAffordanceConfig
+import com.android.systemui.keyguard.data.quickaffordance.QrCodeScannerKeyguardQuickAffordanceConfig
+import com.android.systemui.keyguard.data.quickaffordance.QuickAccessWalletKeyguardQuickAffordanceConfig
+import com.android.systemui.keyguard.shared.quickaffordance.KeyguardQuickAffordancePosition
 import javax.inject.Inject
-import kotlin.reflect.KClass
 
 /** Central registry of all known quick affordance configs. */
 interface KeyguardQuickAffordanceRegistry<T : KeyguardQuickAffordanceConfig> {
     fun getAll(position: KeyguardQuickAffordancePosition): List<T>
-    fun get(configClass: KClass<out T>): T
+    fun get(key: String): T
     fun updateSettings()
 }
+
+const val DEFAULT_CONFIG = HOME_CONTROLS + "," + FLASHLIGHT + ";" + QUICK_ACCESS_WALLET + "," + QR_CODE_SCANNER + "," + CAMERA
 
 class KeyguardQuickAffordanceRegistryImpl
 @Inject
@@ -38,25 +53,27 @@ constructor(
     private val homeControls: HomeControlsKeyguardQuickAffordanceConfig,
     private val quickAccessWallet: QuickAccessWalletKeyguardQuickAffordanceConfig,
     private val qrCodeScanner: QrCodeScannerKeyguardQuickAffordanceConfig,
-    private val camera: CameraKeyguardQuickAffordanceConfig,
-    private val flashlight: FlashlightKeyguardQuickAffordanceConfig,
+    private val camera: CameraQuickAffordanceConfig,
+    private val flashlight: FlashlightQuickAffordanceConfig,
+    private val doNotDisturb: DoNotDisturbQuickAffordanceConfig
 ) : KeyguardQuickAffordanceRegistry<KeyguardQuickAffordanceConfig> {
 
     private val configsBySetting: Map<String, KeyguardQuickAffordanceConfig> =
         mapOf(
-            "home" to homeControls,
-            "wallet" to quickAccessWallet,
-            "qr" to qrCodeScanner,
-            "camera" to camera,
-            "flashlight" to flashlight
+            HOME_CONTROLS to homeControls,
+            QUICK_ACCESS_WALLET to quickAccessWallet,
+            QR_CODE_SCANNER to qrCodeScanner,
+            CAMERA to camera,
+            FLASHLIGHT to flashlight,
+            DO_NOT_DISTURB to doNotDisturb
         )
 
     private var configsByPosition: Map<KeyguardQuickAffordancePosition, MutableList<KeyguardQuickAffordanceConfig>>
-    private var configByClass: Map<KClass<out KeyguardQuickAffordanceConfig>, KeyguardQuickAffordanceConfig>
+    private var configByKey: Map<String, KeyguardQuickAffordanceConfig>
 
     init {
         configsByPosition = mapOf()
-        configByClass = mapOf()
+        configByKey = mapOf()
         updateSettings()
     }
 
@@ -67,16 +84,16 @@ constructor(
     }
 
     override fun get(
-        configClass: KClass<out KeyguardQuickAffordanceConfig>
+        key: String,
     ): KeyguardQuickAffordanceConfig {
-        return configByClass.getValue(configClass)
+        return configByKey.getValue(key)
     }
 
     override fun updateSettings() {
         var setting = Settings.System.getString(context.getContentResolver(),
-                Settings.System.KEYGUARD_QUICK_TOGGLES)
+                Settings.System.KEYGUARD_QUICK_TOGGLES_NEW)
         if (setting == null || setting.isEmpty())
-            setting = "home,flashlight;wallet,qr,camera"
+            setting = DEFAULT_CONFIG
         val split: List<String> = setting.split(";")
         val start: List<String> = split.get(0).split(",")
         val end: List<String> = split.get(1).split(",")
@@ -99,7 +116,7 @@ constructor(
                     endList,
             )
 
-        configByClass =
-            configsByPosition.values.flatten().associateBy { config -> config::class }
+        configByKey =
+            configsByPosition.values.flatten().associateBy { config -> config.key }
     }
 }

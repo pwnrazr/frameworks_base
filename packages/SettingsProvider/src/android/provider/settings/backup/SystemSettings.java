@@ -44,8 +44,6 @@ public class SystemSettings {
         Settings.System.DIM_SCREEN,
         Settings.System.SCREEN_OFF_TIMEOUT,
         Settings.System.SCREEN_BRIGHTNESS_MODE,
-        Settings.System.SCREEN_AUTO_BRIGHTNESS_ADJ,
-        Settings.System.SCREEN_BRIGHTNESS_FOR_VR,
         Settings.System.ADAPTIVE_SLEEP,             // moved to secure
         Settings.System.APPLY_RAMPING_RINGER,
         Settings.System.VIBRATE_INPUT_DEVICES,
@@ -141,7 +139,6 @@ public class SystemSettings {
         Settings.System.NOTIFICATION_PULSE_COLOR,
         Settings.System.NOTIFICATION_PULSE_REPEATS,
         Settings.System.NOTIFICATION_PULSE_DURATION,
-        Settings.System.QS_FOOTER_SERVICES_SHOW,
         Settings.System.KEYGAURD_MEDIA_ART,
         Settings.System.QS_SHOW_BATTERY_ESTIMATE,
         Settings.System.ENABLE_FLOATING_ROTATION_BUTTON,
@@ -155,12 +152,11 @@ public class SystemSettings {
         Settings.System.BACK_GESTURE_HEIGHT,
         Settings.System.VOLUME_PANEL_ON_LEFT,
         Settings.System.VOLUME_PANEL_ON_LEFT_LAND,
-        Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL,
         Settings.System.STATUSBAR_CLOCK_POSITION,
         Settings.System.NOTIFICATION_VIBRATION_PATTERN,
         Settings.System.CUSTOM_NOTIFICATION_VIBRATION_PATTERN,
         Settings.System.DEFAULT_NOTIFICATION_TORCH,
         Settings.System.STATUS_BAR_NOTIF_COUNT,
-        Settings.System.KEYGUARD_QUICK_TOGGLES,
+        Settings.System.KEYGUARD_QUICK_TOGGLES_NEW,
     };
 }

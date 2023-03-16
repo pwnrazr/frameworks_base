@@ -23,19 +23,15 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.UserHandle
 import android.provider.Settings
-import android.view.View
 import com.android.internal.jank.InteractionJankMonitor
 import com.android.internal.logging.MetricsLogger
 import com.android.internal.logging.UiEventLogger
 import com.android.internal.logging.nano.MetricsProto
 import com.android.internal.util.FrameworkStatsLog
-import com.android.systemui.animation.ActivityLaunchAnimator
 import com.android.systemui.animation.Expandable
 import com.android.systemui.broadcast.BroadcastDispatcher
 import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.dagger.qualifiers.Background
-import com.android.systemui.flags.FeatureFlags
-import com.android.systemui.flags.Flags
 import com.android.systemui.globalactions.GlobalActionsDialogLite
 import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.qs.FgsManagerController
@@ -44,10 +40,9 @@ import com.android.systemui.qs.footer.data.model.UserSwitcherStatusModel
 import com.android.systemui.qs.footer.data.repository.ForegroundServicesRepository
 import com.android.systemui.qs.footer.data.repository.UserSwitcherRepository
 import com.android.systemui.qs.footer.domain.model.SecurityButtonConfig
-import com.android.systemui.qs.user.UserSwitchDialogController
 import com.android.systemui.security.data.repository.SecurityRepository
 import com.android.systemui.statusbar.policy.DeviceProvisionedController
-import com.android.systemui.user.UserSwitcherActivity
+import com.android.systemui.user.domain.interactor.UserInteractor
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -74,37 +69,30 @@ interface FooterActionsInteractor {
     val deviceMonitoringDialogRequests: Flow<Unit>
 
     /**
-     * Show the device monitoring dialog, expanded from [view].
-     *
-     * Important: [view] must be associated to the same [Context] as the [Quick Settings fragment]
-     * [com.android.systemui.qs.QSFragment].
-     */
-    // TODO(b/230830644): Replace view by Expandable interface.
-    fun showDeviceMonitoringDialog(view: View)
-
-    /**
-     * Show the device monitoring dialog.
+     * Show the device monitoring dialog, expanded from [expandable] if it's not null.
      *
      * Important: [quickSettingsContext] *must* be the [Context] associated to the [Quick Settings
      * fragment][com.android.systemui.qs.QSFragment].
      */
-    // TODO(b/230830644): Replace view by Expandable interface.
-    fun showDeviceMonitoringDialog(quickSettingsContext: Context)
+    fun showDeviceMonitoringDialog(quickSettingsContext: Context, expandable: Expandable?)
 
     /** Show the foreground services dialog. */
-    // TODO(b/230830644): Replace view by Expandable interface.
-    fun showForegroundServicesDialog(view: View)
+    fun showForegroundServicesDialog(expandable: Expandable)
 
     /** Show the power menu dialog. */
-    // TODO(b/230830644): Replace view by Expandable interface.
-    fun showPowerMenuDialog(globalActionsDialogLite: GlobalActionsDialogLite, view: View)
+    fun showPowerMenuDialog(
+        globalActionsDialogLite: GlobalActionsDialogLite,
+        expandable: Expandable,
+    )
 
     /** Show the settings. */
     fun showSettings(expandable: Expandable)
 
+    /** Show YASP */
+    fun showYASP(expandable: Expandable): Boolean
+
     /** Show the user switcher. */
-    // TODO(b/230830644): Replace view by Expandable interface.
-    fun showUserSwitcher(view: View)
+    fun showUserSwitcher(context: Context, expandable: Expandable)
 }
 
 @SysUISingleton
@@ -112,13 +100,12 @@ class FooterActionsInteractorImpl
 @Inject
 constructor(
     private val activityStarter: ActivityStarter,
-    private val featureFlags: FeatureFlags,
     private val metricsLogger: MetricsLogger,
     private val uiEventLogger: UiEventLogger,
     private val deviceProvisionedController: DeviceProvisionedController,
     private val qsSecurityFooterUtils: QSSecurityFooterUtils,
     private val fgsManagerController: FgsManagerController,
-    private val userSwitchDialogController: UserSwitchDialogController,
+    private val userInteractor: UserInteractor,
     securityRepository: SecurityRepository,
     foregroundServicesRepository: ForegroundServicesRepository,
     userSwitcherRepository: UserSwitcherRepository,
@@ -147,28 +134,32 @@ constructor(
             null,
         )
 
-    override fun showDeviceMonitoringDialog(view: View) {
-        qsSecurityFooterUtils.showDeviceMonitoringDialog(view.context, view)
-        DevicePolicyEventLogger.createEvent(
-                FrameworkStatsLog.DEVICE_POLICY_EVENT__EVENT_ID__DO_USER_INFO_CLICKED
-            )
-            .write()
+    override fun showDeviceMonitoringDialog(
+        quickSettingsContext: Context,
+        expandable: Expandable?,
+    ) {
+        qsSecurityFooterUtils.showDeviceMonitoringDialog(quickSettingsContext, expandable)
+        if (expandable != null) {
+            DevicePolicyEventLogger.createEvent(
+                    FrameworkStatsLog.DEVICE_POLICY_EVENT__EVENT_ID__DO_USER_INFO_CLICKED
+                )
+                .write()
+        }
     }
 
-    override fun showDeviceMonitoringDialog(quickSettingsContext: Context) {
-        qsSecurityFooterUtils.showDeviceMonitoringDialog(quickSettingsContext, /* view= */ null)
+    override fun showForegroundServicesDialog(expandable: Expandable) {
+        fgsManagerController.showDialog(expandable)
     }
 
-    override fun showForegroundServicesDialog(view: View) {
-        fgsManagerController.showDialog(view)
-    }
-
-    override fun showPowerMenuDialog(globalActionsDialogLite: GlobalActionsDialogLite, view: View) {
+    override fun showPowerMenuDialog(
+        globalActionsDialogLite: GlobalActionsDialogLite,
+        expandable: Expandable,
+    ) {
         uiEventLogger.log(GlobalActionsDialogLite.GlobalActionsEvent.GA_OPEN_QS)
         globalActionsDialogLite.showOrHideDialog(
             /* keyguardShowing= */ false,
             /* isDeviceProvisioned= */ true,
-            view,
+            expandable,
         )
     }
 
@@ -189,23 +180,25 @@ constructor(
         )
     }
 
-    override fun showUserSwitcher(view: View) {
-        if (!featureFlags.isEnabled(Flags.FULL_SCREEN_USER_SWITCHER)) {
-            userSwitchDialogController.showDialog(view)
-            return
+    override fun showYASP(expandable: Expandable): Boolean {
+        if (!deviceProvisionedController.isCurrentUserSetup) {
+            // If user isn't setup just unlock the device and dump them back at SUW.
+            activityStarter.postQSRunnableDismissingKeyguard {}
+            return false
         }
 
-        val intent =
-            Intent(view.context, UserSwitcherActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-
+        metricsLogger.action(MetricsProto.MetricsEvent.ACTION_QS_EXPANDED_SETTINGS_LAUNCH)
         activityStarter.startActivity(
-            intent,
+            Intent("com.android.settings.YAAP_SETTINGS"),
             true /* dismissShade */,
-            ActivityLaunchAnimator.Controller.fromView(view, null),
-            true /* showOverlockscreenwhenlocked */,
-            UserHandle.SYSTEM,
+            expandable.activityLaunchController(
+                InteractionJankMonitor.CUJ_SHADE_APP_LAUNCH_FROM_SETTINGS_BUTTON
+            ),
         )
+        return true
+    }
+
+    override fun showUserSwitcher(context: Context, expandable: Expandable) {
+        userInteractor.showUserSwitcher(context, expandable)
     }
 }

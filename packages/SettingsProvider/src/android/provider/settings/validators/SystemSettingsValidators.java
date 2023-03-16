@@ -263,7 +263,6 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.NOTIFICATION_PULSE_COLOR, ANY_INTEGER_VALIDATOR);
         VALIDATORS.put(System.NOTIFICATION_PULSE_REPEATS, ANY_INTEGER_VALIDATOR);
         VALIDATORS.put(System.NOTIFICATION_PULSE_DURATION, ANY_INTEGER_VALIDATOR);
-        VALIDATORS.put(System.QS_FOOTER_SERVICES_SHOW, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.KEYGAURD_MEDIA_ART, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.QS_SHOW_BATTERY_ESTIMATE, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.ENABLE_FLOATING_ROTATION_BUTTON, BOOLEAN_VALIDATOR);
@@ -297,7 +296,6 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.BACK_GESTURE_HEIGHT, new InclusiveIntegerRangeValidator(0, 5));
         VALIDATORS.put(System.VOLUME_PANEL_ON_LEFT, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.VOLUME_PANEL_ON_LEFT_LAND, BOOLEAN_VALIDATOR);
-        VALIDATORS.put(System.STATUS_BAR_BRIGHTNESS_CONTROL, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.STATUSBAR_CLOCK_POSITION, new InclusiveIntegerRangeValidator(0, 2));
         VALIDATORS.put(System.NOTIFICATION_VIBRATION_PATTERN, new InclusiveIntegerRangeValidator(0, 5));
         VALIDATORS.put(System.CUSTOM_NOTIFICATION_VIBRATION_PATTERN, CUSTOM_VIBRATION_PATTERN_VALIDATOR);
@@ -321,35 +319,6 @@ public class SystemSettingsValidators {
                     }
                 });
         VALIDATORS.put(System.STATUS_BAR_NOTIF_COUNT, BOOLEAN_VALIDATOR);
-        VALIDATORS.put(System.KEYGUARD_QUICK_TOGGLES,
-                new Validator() {
-                    @Override
-                    public boolean validate(String value) {
-                        if (value == null) return true;
-                        if (!value.contains(";")) return false;
-                        final List<String> valid = Arrays.asList(
-                            "home",
-                            "wallet",
-                            "qr",
-                            "camera",
-                            "flashlight"
-                        );
-                        final String[] split = value.split(";");
-                        if (split.length != 2) return false;
-                        if (!split[0].equals("none")) {
-                            String[] args = split[0].split(",");
-                            for (String arg : args)
-                                if (!valid.contains(arg))
-                                    return false;
-                        }
-                        if (!split[1].equals("none")) {
-                            String[] args = split[1].split(",");
-                            for (String arg : args)
-                                if (!valid.contains(arg))
-                                    return false;
-                        }
-                        return true;
-                    }
-                });
+        VALIDATORS.put(System.KEYGUARD_QUICK_TOGGLES_NEW, ANY_STRING_VALIDATOR);
     }
 }
