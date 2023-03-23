@@ -131,8 +131,7 @@ public final class PixelPropsUtils {
     }
 
     private static final HashSet<String> extraPackagesToChange = new HashSet<>(Set.of(
-        "com.breel.wallpapers20",
-        "com.snapchat.android"
+        "com.breel.wallpapers20"
     ));
 
     private static final HashSet<String> marlinPackagesToChange = new HashSet<>(Set.of(
@@ -185,6 +184,8 @@ public final class PixelPropsUtils {
             }
             // persistent
             persistProps.forEach(PixelPropsUtils::setPropValue);
+	} else if (packageName.equals("com.snapchat.android")) {
+		walleyeProps.forEach(PixelPropsUtils::setPropValue);
         } else if (packageName.startsWith("com.google.")
                 || extraPackagesToChange.contains(packageName)) {
             final boolean isInKeep = propsToKeep.containsKey(packageName);
