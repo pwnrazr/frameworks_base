@@ -136,6 +136,7 @@ public final class PixelPropsUtils {
     ));
 
     private static final HashSet<String> marlinPackagesToChange = new HashSet<>(Set.of(
+        "com.google.android.apps.photos",
         "com.samsung.accessory.berrymgr",
         "com.samsung.accessory.fridaymgr",
         "com.samsung.accessory.neobeanmg",
@@ -148,7 +149,6 @@ public final class PixelPropsUtils {
 
     private static final HashSet<String> redfinPackagesToChange = new HashSet<>(Set.of(
         "com.google.android.googlequicksearchbox",
-        "com.google.android.apps.photos",
         "com.google.android.apps.recorder"
     ));
 
