@@ -67,17 +67,7 @@ public final class PixelPropsUtils {
         "MODEL", "Pixel 2",
         "PRODUCT", "walleye",
         "DEVICE", "walleye",
-        "FINGERPRINT", "google/walleye/walleye:8.1.0/OPM1.171019.011/4448085:user/release-keys",
-        "SECURITY_PATCH", "2017-12-05"
-    ));
-
-    private static final HashMap<String, String> redfinProps = new HashMap<>(Map.of(
-        "ID", "SQ1A.220105.002",
-        "DEVICE", "redfin",
-        "PRODUCT", "redfin",
-        "MODEL", "Pixel 5",
-        "FINGERPRINT", "google/redfin/redfin:12/SQ1A.220105.002/7961164:user/release-keys",
-        "SECURITY_PATCH", "2022-01-05"
+        "FINGERPRINT", "google/walleye/walleye:8.1.0/OPM1.171019.011/4448085:user/release-keys"
     ));
 
     private static final HashMap<String, String> persistProps = new HashMap<>(Map.of(
@@ -96,16 +86,24 @@ public final class PixelPropsUtils {
         "FINGERPRINT", build_fp
     ));
 
-    private static final HashMap<String, Object> commonProps = new HashMap<>(Map.of(
-        "BRAND", "google",
-        "MANUFACTURER", "Google",
-        "IS_DEBUGGABLE", false,
-        "IS_ENG", false,
-        "IS_USERDEBUG", false,
-        "IS_USER", true,
-        "TYPE", "user",
-        "TAGS", "release-keys"
-    ));
+    private static final HashMap<String, Object> commonProps;
+    static {
+        Map<String, Object> tMap = new HashMap<>();
+        tMap.put("BRAND", "google");
+        tMap.put("MANUFACTURER", "Google");
+        // conditionally spoofing if different
+        if (Build.IS_DEBUGGABLE)
+            tMap.put("IS_DEBUGGABLE", false);
+        if (Build.IS_ENG)
+            tMap.put("IS_ENG", false);
+        if (!Build.IS_USER)
+            tMap.put("IS_USER", true);
+        if (!Build.TYPE.equals("user"))
+            tMap.put("TYPE", "user");
+        if (!Build.TAGS.equals("release-keys"))
+            tMap.put("TAGS", "release-keys");
+        commonProps = new HashMap<>(tMap);
+    }
 
     private static final HashMap<String, HashMap<String, String>> propsToKeep;
     static {
@@ -131,8 +129,7 @@ public final class PixelPropsUtils {
     }
 
     private static final HashSet<String> extraPackagesToChange = new HashSet<>(Set.of(
-        "com.breel.wallpapers20",
-        "com.snapchat.android"
+        "com.breel.wallpapers20"
     ));
 
     private static final HashSet<String> marlinPackagesToChange = new HashSet<>(Set.of(
@@ -147,11 +144,6 @@ public final class PixelPropsUtils {
         "com.samsung.android.waterplugin"
     ));
 
-    private static final HashSet<String> redfinPackagesToChange = new HashSet<>(Set.of(
-        "com.google.android.googlequicksearchbox",
-        "com.google.android.apps.recorder"
-    ));
-
     private static final HashSet<String> extraGMSProcToChange = new HashSet<>(Set.of(
         "com.google.android.gms.ui",
         "com.google.android.gms.learning"
@@ -163,10 +155,7 @@ public final class PixelPropsUtils {
         if (packageName == null) return;
         if (isLoggable()) Log.d(TAG, "Package = " + packageName);
         sIsFinsky = packageName.equals(PACKAGE_FINSKY);
-        if (redfinPackagesToChange.contains(packageName)) {
-            commonProps.forEach(PixelPropsUtils::setPropValue);
-            redfinProps.forEach(PixelPropsUtils::setPropValue);
-        } else if (packageName.equals(PACKAGE_GMS)) {
+        if (packageName.equals(PACKAGE_GMS)) {
             final String procName = Application.getProcessName();
             final boolean isUnstable = PROCESS_GMS_UNSTABLE.equals(procName);
             final boolean isPersistent = !isUnstable && PROCESS_GMS_PERSISTENT.equals(procName);
@@ -201,9 +190,8 @@ public final class PixelPropsUtils {
                         if (isLoggable())
                             Log.d(TAG, "Not defining " + key + " prop for: " + packageName);
                         return;
-                    } else {
-                        key = keyValue;
                     }
+                    value = keyValue;
                 }
                 if (isLoggable()) Log.d(TAG, "Defining " + key + " prop for: " + packageName);
                 setPropValue(key, value);
