@@ -70,6 +70,15 @@ public final class PixelPropsUtils {
         "FINGERPRINT", "google/walleye/walleye:8.1.0/OPM1.171019.011/4448085:user/release-keys"
     ));
 
+    private static final HashMap<String, String> redfinProps = new HashMap<>(Map.of(
+        "ID", "SQ1A.220105.002",
+        "DEVICE", "redfin",
+        "PRODUCT", "redfin",
+        "MODEL", "Pixel 5",
+        "FINGERPRINT", "google/redfin/redfin:12/SQ1A.220105.002/7961164:user/release-keys",
+        "SECURITY_PATCH", "2022-01-05"
+    ));
+
     private static final HashMap<String, String> persistProps = new HashMap<>(Map.of(
         "ID", persist_fp.split("/", 5)[3],
         "MODEL", persist_model,
@@ -144,6 +153,11 @@ public final class PixelPropsUtils {
         "com.samsung.android.waterplugin"
     ));
 
+    private static final HashSet<String> redfinPackagesToChange = new HashSet<>(Set.of(
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.apps.recorder"
+    ));
+
     private static final HashSet<String> extraGMSProcToChange = new HashSet<>(Set.of(
         "com.google.android.gms.ui",
         "com.google.android.gms.learning"
@@ -155,7 +169,10 @@ public final class PixelPropsUtils {
         if (packageName == null) return;
         if (isLoggable()) Log.d(TAG, "Package = " + packageName);
         sIsFinsky = packageName.equals(PACKAGE_FINSKY);
-        if (packageName.equals(PACKAGE_GMS)) {
+        if (redfinPackagesToChange.contains(packageName)) {
+            commonProps.forEach(PixelPropsUtils::setPropValue);
+            redfinProps.forEach(PixelPropsUtils::setPropValue);
+        } else if (packageName.equals(PACKAGE_GMS)) {
             final String procName = Application.getProcessName();
             final boolean isUnstable = PROCESS_GMS_UNSTABLE.equals(procName);
             final boolean isPersistent = !isUnstable && PROCESS_GMS_PERSISTENT.equals(procName);
