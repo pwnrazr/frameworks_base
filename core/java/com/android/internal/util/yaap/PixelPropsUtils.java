@@ -138,7 +138,9 @@ public final class PixelPropsUtils {
     ));
 
     private static final HashSet<String> redfinPackagesToChange = new HashSet<>(Set.of(
-        "com.google.android.apps.photos"
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.apps.photos",
+        "com.google.android.apps.recorder"
     ));
 
     private static final HashSet<String> extraGMSProcToChange = new HashSet<>(Set.of(
