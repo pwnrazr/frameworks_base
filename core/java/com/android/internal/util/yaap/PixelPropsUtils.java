@@ -118,15 +118,7 @@ public final class PixelPropsUtils {
     ));
 
     private static final HashSet<String> marlinPackagesToChange = new HashSet<>(Set.of(
-        "com.google.android.apps.photos",
-        "com.samsung.accessory.berrymgr",
-        "com.samsung.accessory.fridaymgr",
-        "com.samsung.accessory.neobeanmg",
-        "com.samsung.android.app.watchma",
-        "com.samsung.android.gearnplugin",
-        "com.samsung.android.modenplugin",
-        "com.samsung.android.neatplugin",
-        "com.samsung.android.waterplugin"
+        "com.google.android.apps.photos"
     ));
 
     private static final HashSet<String> extraGMSProcToChange = new HashSet<>(Set.of(
