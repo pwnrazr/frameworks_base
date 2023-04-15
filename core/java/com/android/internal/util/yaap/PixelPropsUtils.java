@@ -152,7 +152,10 @@ public final class PixelPropsUtils {
         if (packageName == null) return;
         if (isLoggable()) Log.d(TAG, "Package = " + packageName);
         sIsFinsky = packageName.equals(PACKAGE_FINSKY);
-        if (redfinPackagesToChange.contains(packageName)) {
+        if (marlinPackagesToChange.contains(packageName)) {
+            commonProps.forEach(PixelPropsUtils::setPropValue);
+            marlinProps.forEach(PixelPropsUtils::setPropValue);
+        } else if (redfinPackagesToChange.contains(packageName)) {
             commonProps.forEach(PixelPropsUtils::setPropValue);
             redfinProps.forEach(PixelPropsUtils::setPropValue);
         } else if (packageName.equals(PACKAGE_GMS)) {
