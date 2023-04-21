@@ -47,20 +47,11 @@ public final class PixelPropsUtils {
             Resources.getSystem().getString(R.string.build_model);
 
     private static final HashMap<String, String> marlinProps = new HashMap<>(Map.of(
-        "ID", "QP1A.191005.007.A3",
-        "DEVICE", "marlin",
-        "PRODUCT", "marlin",
+        "ID", "NJH47F",
         "MODEL", "Pixel XL",
-        "FINGERPRINT", "google/marlin/marlin:10/QP1A.191005.007.A3/5972272:user/release-keys",
-        "SECURITY_PATCH", "2019-12-05"
-    ));
-
-    private static final HashMap<String, String> walleyeProps = new HashMap<>(Map.of(
-        "ID", "OPM1.171019.011",
-        "MODEL", "Pixel 2",
-        "PRODUCT", "walleye",
-        "DEVICE", "walleye",
-        "FINGERPRINT", "google/walleye/walleye:8.1.0/OPM1.171019.011/4448085:user/release-keys"
+        "PRODUCT", "marlin",
+        "DEVICE", "marlin",
+        "FINGERPRINT", "google/marlin/marlin:7.1.2/NJH47F/4146041:user/release-keys"
     ));
 
     private static final HashMap<String, String> buildProps = new HashMap<>(Map.of(
@@ -145,7 +136,7 @@ public final class PixelPropsUtils {
             if (!isUnstable && !isPersistent && !isExtra) return;
             commonProps.forEach(PixelPropsUtils::setPropValue);
             if (isUnstable) {
-                walleyeProps.forEach(PixelPropsUtils::setPropValue);
+                marlinProps.forEach(PixelPropsUtils::setPropValue);
                 return;
             }
             buildProps.forEach(PixelPropsUtils::setPropValue);
