@@ -18,14 +18,10 @@ package com.android.server.pm.pkg;
 
 import android.annotation.Nullable;
 import android.content.pm.GosPackageState;
+import android.content.pm.GosPackageStateBase;
 
 import com.android.server.pm.Computer;
 import com.android.server.pm.PackageManagerService;
-
-import java.util.Arrays;
-
-import static android.content.pm.GosPackageState.FLAG_ALLOW_ACCESS_TO_OBB_DIRECTORY;
-import static android.content.pm.GosPackageState.FLAG_STORAGE_SCOPES_ENABLED;
 
 /**
  * GrapheneOS-specific package state, stored in PackageUserState (per-user, removed during uninstallation).
@@ -51,14 +47,10 @@ import static android.content.pm.GosPackageState.FLAG_STORAGE_SCOPES_ENABLED;
  *
  * @hide
  */
-public final class GosPackageStatePm {
-    public final int flags;
-    @Nullable
-    public final byte[] storageScopes;
+public final class GosPackageStatePm extends GosPackageStateBase {
 
-    public GosPackageStatePm(int flags, @Nullable byte[] storageScopes) {
-        this.flags = flags;
-        this.storageScopes = storageScopes;
+    public GosPackageStatePm(int flags, @Nullable byte[] storageScopes, @Nullable byte[] contactScopes) {
+        super(flags, storageScopes, contactScopes);
     }
 
     @Nullable
@@ -66,6 +58,7 @@ public final class GosPackageStatePm {
         return get(pm.snapshotComputer(), packageName, userId);
     }
 
+    @Nullable
     public static GosPackageStatePm get(Computer snapshot, String packageName, int userId) {
         PackageStateInternal psi = snapshot.getPackageStates().get(packageName);
         if (psi == null) {
@@ -75,6 +68,7 @@ public final class GosPackageStatePm {
         return get(snapshot, psi, userId);
     }
 
+    @Nullable
     public static GosPackageStatePm get(Computer snapshot, PackageStateInternal psi, int userId) {
         GosPackageStatePm res = psi.getUserStateOrDefault(userId).getGosPackageState();
         if (res != null) {
@@ -117,49 +111,13 @@ public final class GosPackageStatePm {
         var ps = get(pm, packageName, userId);
 
         if (ps != null) {
-            return new GosPackageState.Editor(packageName, userId, ps.flags, ps.storageScopes);
+            return ps.edit(packageName, userId);
         }
 
         return new GosPackageState.Editor(packageName, userId);
     }
 
-    public boolean hasFlags(int flags) {
-        return (this.flags & flags) == flags;
-    }
-
-    @Override
-    public int hashCode() {
-        return 31 * flags + Arrays.hashCode(storageScopes);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof GosPackageStatePm)) {
-            return false;
-        }
-
-        GosPackageStatePm o = (GosPackageStatePm) obj;
-        if (flags != o.flags) {
-            return false;
-        }
-
-        if (!Arrays.equals(storageScopes, o.storageScopes)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public GosPackageState externalVersionForPrivilegedCallers(int derivedFlags) {
-        return new GosPackageState(flags, storageScopes, derivedFlags);
-    }
-
-    private static final int FLAGS_VISIBLE_TO_THE_TARGET_PACKAGE = FLAG_STORAGE_SCOPES_ENABLED
-            | FLAG_ALLOW_ACCESS_TO_OBB_DIRECTORY;
-    private static final int DFLAGS_VISIBLE_TO_THE_TARGET_PACKAGE = -1;
-
-    public GosPackageState externalVersionForTargetPackage(int derivedFlags) {
-        return new GosPackageState(flags & FLAGS_VISIBLE_TO_THE_TARGET_PACKAGE, null,
-                derivedFlags & DFLAGS_VISIBLE_TO_THE_TARGET_PACKAGE);
+    public GosPackageState.Editor edit(String packageName, int userId) {
+        return new GosPackageState.Editor(this, packageName, userId);
     }
 }

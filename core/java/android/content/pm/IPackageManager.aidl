@@ -810,5 +810,7 @@ interface IPackageManager {
 
     android.content.pm.GosPackageState getGosPackageState(String packageName, int userId);
 
-    android.content.pm.GosPackageState setGosPackageState(String packageName, int flags, in byte[] storageScopes, boolean killUid, int userId);
+    boolean setGosPackageState(String packageName, int userId, in android.content.pm.GosPackageState updatedPs, int editorFlags);
+
+    @nullable Bundle getExtraAppBindArgs(String packageName);
 }

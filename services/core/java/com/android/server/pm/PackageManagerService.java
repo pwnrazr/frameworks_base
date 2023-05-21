@@ -199,6 +199,7 @@ import com.android.server.Watchdog;
 import com.android.server.apphibernation.AppHibernationManagerInternal;
 import com.android.server.compat.CompatChange;
 import com.android.server.compat.PlatformCompat;
+import com.android.server.ext.PackageManagerHooks;
 import com.android.server.pm.Installer.InstallerException;
 import com.android.server.pm.Settings.VersionInfo;
 import com.android.server.pm.dex.ArtManagerService;
@@ -4220,7 +4221,7 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
         // Prune unused static shared libraries which have been cached a period of time
         schedulePruneUnusedStaticSharedLibraries(false /* delay */);
 
-        initGosPackageStateAppIds();
+        GosPackageStatePmHooks.init(this);
     }
 
     //TODO: b/111402650
@@ -4606,6 +4607,10 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
             mHandler.post(new Runnable() {
                 public void run() {
                     mHandler.removeCallbacks(this);
+
+                    GosPackageStatePmHooks.onClearApplicationUserData(
+                            PackageManagerService.this, packageName, userId);
+
                     final boolean succeeded;
                     try (PackageFreezer freezer = freezePackage(packageName,
                             "clearApplicationUserData")) {
@@ -6111,11 +6116,16 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
         }
 
         @Override
-        public GosPackageState setGosPackageState(@NonNull String packageName, int flags, @Nullable byte[] storageScopes, boolean killUid, int userId) {
-            if (GosPackageStatePmHooks.set(PackageManagerService.this, packageName, flags, storageScopes, killUid, userId)) {
-                return GosPackageStatePmHooks.get(PackageManagerService.this, packageName, userId);
-            }
-            return null;
+        public boolean setGosPackageState(@NonNull String packageName, int userId,
+                                                  @NonNull GosPackageState updatedPs, int editorFlags) {
+            return GosPackageStatePmHooks.set(PackageManagerService.this, packageName, userId,
+                    updatedPs, editorFlags);
+        }
+
+        @Nullable
+        @Override
+        public Bundle getExtraAppBindArgs(String packageName) {
+            return PackageManagerHooks.getExtraAppBindArgs(PackageManagerService.this, packageName);
         }
     }
 
@@ -7395,30 +7405,6 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
     void addInstallerPackageName(InstallSource installSource) {
         synchronized (mLock) {
             mSettings.addInstallerPackageNames(installSource);
-        }
-    }
-
-    int mediaProviderAppId;
-    int permissionControllerAppId;
-    int sysLauncherAppId;
-
-    private void initGosPackageStateAppIds() {
-        synchronized (mLock) {
-            AndroidPackage mediaProvider = mPackages.get("com.android.providers.media.module");
-            if (mediaProvider != null) {
-                // getUid() confusingly returns appId
-                mediaProviderAppId = mediaProvider.getUid();
-            }
-
-            AndroidPackage permissionController = mPackages.get(mRequiredPermissionControllerPackage);
-            if (permissionController != null) {
-                permissionControllerAppId = permissionController.getUid();
-            }
-
-            var sysLauncher = mPackages.get("com.android.launcher3");
-            if (sysLauncher != null) {
-                sysLauncherAppId = sysLauncher.getUid();
-            }
         }
     }
 }
