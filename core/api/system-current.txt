@@ -3637,11 +3637,7 @@ package android.content.pm {
   }
 
   public class SpecialRuntimePermAppUtils {
-    method public static boolean awareOfRuntimeInternetPermission();
     method public static boolean isInternetCompatEnabled();
-    method public static boolean requestsInternetPermission();
-    field public static final int FLAG_AWARE_OF_RUNTIME_INTERNET_PERMISSION = 4; // 0x4
-    field public static final int FLAG_REQUESTS_INTERNET_PERMISSION = 2; // 0x2
   }
 
   public final class SuspendDialogInfo implements android.os.Parcelable {
@@ -3829,11 +3825,11 @@ package android.ext.cscopes {
   public class ContactScopesApi {
     method @NonNull public static android.content.Intent createConfigActivityIntent(@NonNull String);
     field public static final String ACTION_NOTIFY_CONTENT_OBSERVERS = "android.ext.cscopes.action.NOTIFY_CONTENT_OBSERVERS";
-    field public static final String KEY_ID = "id";
+    field public static final String KEY_IDS = "ids";
     field public static final String KEY_RESULT = "result";
-    field public static final String KEY_URI = "uri";
+    field public static final String KEY_URIS = "uris";
     field public static final String METHOD_GET_GROUPS = "get_groups";
-    field public static final String METHOD_GET_ID_FROM_URI = "get_id_from_uri";
+    field public static final String METHOD_GET_IDS_FROM_URIS = "get_ids_from_uris";
     field public static final String METHOD_GET_VIEW_MODEL = "get_view_model";
     field public static final String SCOPED_CONTACTS_PROVIDER_AUTHORITY = "com.android.contacts.scoped";
   }
