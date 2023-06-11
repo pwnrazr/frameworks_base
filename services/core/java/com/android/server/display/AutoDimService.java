@@ -15,12 +15,13 @@
  */
 package com.android.server.display;
 
-import static android.provider.Settings.Secure.DOZE_ALWAYS_ON;
-import static android.provider.Settings.Secure.DOZE_ALWAYS_ON_AUTO_MODE;
-import static android.provider.Settings.Secure.DOZE_ALWAYS_ON_AUTO_TIME;
+import static android.provider.Settings.Secure.REDUCE_BRIGHT_COLORS_ACTIVATED;
+import static android.provider.Settings.Secure.EXTRA_DIM_AUTO_MODE;
+import static android.provider.Settings.Secure.EXTRA_DIM_AUTO_TIME;
 import static com.android.internal.util.yaap.AutoSettingConsts.MODE_DISABLED;
 
 import android.content.Context;
+import android.hardware.display.ColorDisplayManager;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -30,25 +31,25 @@ import com.android.server.AutoSettingService;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AutoAODService extends AutoSettingService {
+public class AutoDimService extends AutoSettingService {
 
-    private static final String TAG = "AutoAODService";
+    private static final String TAG = "AutoDimService";
     private static final List<Uri> LISTEN_URIS = new ArrayList<>(List.of(
-        Settings.Secure.getUriFor(DOZE_ALWAYS_ON_AUTO_TIME),
-        Settings.Secure.getUriFor(DOZE_ALWAYS_ON_AUTO_MODE),
-        Settings.Secure.getUriFor(DOZE_ALWAYS_ON)
+        Settings.Secure.getUriFor(EXTRA_DIM_AUTO_MODE),
+        Settings.Secure.getUriFor(EXTRA_DIM_AUTO_TIME),
+        Settings.Secure.getUriFor(REDUCE_BRIGHT_COLORS_ACTIVATED)
     ));
 
     private static final int ON = 1;
     private static final int OFF = 0;
 
-    public AutoAODService(Context context) {
+    public AutoDimService(Context context) {
         super(context);
     }
 
     @Override
     public void publish() {
-        publishLocalService(AutoAODService.class, this);
+        publishLocalService(AutoSettingService.class, this);
     }
 
     @Override
@@ -58,32 +59,31 @@ public class AutoAODService extends AutoSettingService {
 
     @Override
     public String getMainSetting() {
-        return DOZE_ALWAYS_ON;
+        return REDUCE_BRIGHT_COLORS_ACTIVATED;
     }
 
     @Override
     public int getModeValue() {
         return Settings.Secure.getIntForUser(mContext.getContentResolver(),
-                DOZE_ALWAYS_ON_AUTO_MODE, MODE_DISABLED,
-                UserHandle.USER_CURRENT);
+                EXTRA_DIM_AUTO_MODE, MODE_DISABLED, UserHandle.USER_CURRENT);
     }
 
     @Override
     public String getTimeValue() {
         return Settings.Secure.getStringForUser(mContext.getContentResolver(),
-                DOZE_ALWAYS_ON_AUTO_TIME, UserHandle.USER_CURRENT);
+                EXTRA_DIM_AUTO_TIME, UserHandle.USER_CURRENT);
     }
 
     @Override
     public boolean getIsActive() {
         return Settings.Secure.getIntForUser(mContext.getContentResolver(),
-                DOZE_ALWAYS_ON, OFF, UserHandle.USER_CURRENT) == ON;
+                REDUCE_BRIGHT_COLORS_ACTIVATED, OFF, UserHandle.USER_CURRENT) == ON;
     }
 
     @Override
     public void setActive(boolean active) {
         Settings.Secure.putIntForUser(mContext.getContentResolver(),
-                DOZE_ALWAYS_ON, active ? ON : OFF, UserHandle.USER_CURRENT);
+                REDUCE_BRIGHT_COLORS_ACTIVATED, active ? ON : OFF, UserHandle.USER_CURRENT);
     }
 
     @Override

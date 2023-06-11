@@ -37,7 +37,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.SearchManager;
 import android.app.WallpaperManager;
-import android.app.compat.gms.GmsCompat;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -94,7 +93,6 @@ import android.view.WindowManager.LayoutParams;
 import android.widget.Editor;
 
 import com.android.internal.annotations.GuardedBy;
-import com.android.internal.gmscompat.GmsCompatApp;
 import com.android.internal.util.Preconditions;
 import com.android.internal.widget.ILockSettings;
 
@@ -2994,31 +2992,9 @@ public final class Settings {
                     mReadableFieldsWithMaxTargetSdk);
         }
 
-        // Returns last path component of the relevant Uri.
-        // Keep in sync with GmsCompatApp#registerObserver
-        private String maybeGetGmsCompatNamespace() {
-            Uri uri = mUri;
-            // no need to use expensive equals() method in this case
-            if (uri == Global.CONTENT_URI) {
-                return "global";
-            }
-            if (uri == Secure.CONTENT_URI) {
-                return "secure";
-            }
-            return null;
-        }
-
         public boolean putStringForUser(ContentResolver cr, String name, String value,
                 String tag, boolean makeDefault, final int userHandle,
                 boolean overrideableByRestore) {
-            if (GmsCompat.isEnabled()) {
-                String ns = maybeGetGmsCompatNamespace();
-                if (ns != null && !mAllFields.contains(name)) {
-                    return GmsCompatApp.putString(ns, name, value);
-                }
-                return false;
-            }
-
             try {
                 Bundle arg = new Bundle();
                 arg.putString(Settings.NameValueTable.VALUE, value);
@@ -3079,15 +3055,6 @@ public final class Settings {
 
         @UnsupportedAppUsage
         public String getStringForUser(ContentResolver cr, String name, final int userHandle) {
-            if (GmsCompat.isEnabled()) {
-                String ns = maybeGetGmsCompatNamespace();
-                if (ns != null) {
-                    if (!mAllFields.contains(name) && !name.startsWith("gmscompat")) {
-                        return GmsCompatApp.getString(ns, name);
-                    }
-                }
-            }
-
             // Check if the target settings key is readable. Reject if the caller is not system and
             // is trying to access a settings key defined in the Settings.Secure, Settings.System or
             // Settings.Global and is not annotated as @Readable.
@@ -3095,10 +3062,6 @@ public final class Settings {
             // still be regarded as readable.
             if (!isCallerExemptFromReadableRestriction() && mAllFields.contains(name)) {
                 if (!mReadableFields.contains(name)) {
-                    if (GmsCompat.isEnabled()) {
-                        return null;
-                    }
-
                     throw new SecurityException(
                             "Settings key: <" + name + "> is not readable. From S+, settings keys "
                                     + "annotated with @hide are restricted to system_server and "
@@ -3115,10 +3078,6 @@ public final class Settings {
                                 && application.getApplicationInfo().targetSdkVersion
                                 <= maxTargetSdk;
                         if (!targetSdkCheckOk) {
-                            if (GmsCompat.isEnabled()) {
-                                return null;
-                            }
-
                             throw new SecurityException(
                                     "Settings key: <" + name + "> is only readable to apps with "
                                             + "targetSdkVersion lower than or equal to: "
@@ -6651,11 +6610,6 @@ public final class Settings {
                 CALL_METHOD_DELETE_SECURE,
                 sProviderHolder,
                 Secure.class);
-
-        /** @hide */
-        public static boolean isKnownKey(String key) {
-            return sNameValueCache.mAllFields.contains(key);
-        }
 
         private static ILockSettings sLockSettings = null;
 
@@ -11386,15 +11340,6 @@ public final class Settings {
         public static final String PEOPLE_STRIP = "people_strip";
 
         /**
-         * Whether to auto grant OTHER_SENSORS special runtime permission to new user apps (0 or 1).
-         * @hide
-         */
-        public static final String AUTO_GRANT_OTHER_SENSORS_PERMISSION = "auto_grant_OTHER_SENSORS_perm";
-
-        /** @hide */
-        public static final int AUTO_GRANT_OTHER_SENSORS_PERMISSION_DEFAULT = 1;
-
-        /**
          * Whether or not to enable media resumption
          * When enabled, media controls in quick settings will populate on boot and persist if
          * resumable via a MediaBrowserService.
@@ -11856,6 +11801,28 @@ public final class Settings {
          * @hide
          */
         public static final String DOZE_PICK_UP_GESTURE_AMBIENT = "doze_pick_up_gesture_ambient";
+
+        /**
+         * Indicates whether extra dim turns on automatically
+         * 0 = disabled (default)
+         * 1 = from sunset to sunrise
+         * 2 = custom time
+         * 3 = from sunset till a time
+         * 4 = from a time till sunrise
+         * @hide
+         */
+        @Readable
+        public static final String EXTRA_DIM_AUTO_MODE = "extra_dim_auto_mode";
+
+        /**
+         * The custom time extra dim should be on at
+         * Only relevant when {@link EXTRA_DIM_AUTO_MODE} is set to 2 and above
+         * 0 = Disabled (default)
+         * format: HH:mm,HH:mm (since,till)
+         * @hide
+         */
+        @Readable
+        public static final String EXTRA_DIM_AUTO_TIME = "extra_dim_auto_time";
 
         /**
          * These entries are considered common between the personal and the managed profile,
@@ -16842,11 +16809,6 @@ public final class Settings {
                     CALL_METHOD_DELETE_GLOBAL,
                     sProviderHolder,
                     Global.class);
-
-        /** @hide */
-        public static boolean isKnownKey(String key) {
-            return sNameValueCache.mAllFields.contains(key);
-        }
 
         // Certain settings have been moved from global to the per-user secure namespace
         @UnsupportedAppUsage
