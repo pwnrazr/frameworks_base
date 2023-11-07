@@ -60,6 +60,7 @@ class NotificationSectionsManager @Inject internal constructor(
 
     private lateinit var parent: NotificationStackScrollLayout
     private var initialized = false
+    private var showHeaders = true
 
     @VisibleForTesting
     val silentHeaderView: SectionHeaderView?
@@ -82,9 +83,10 @@ class NotificationSectionsManager @Inject internal constructor(
         get() = mediaContainerController.mediaContainerView
 
     /** Must be called before use.  */
-    fun initialize(parent: NotificationStackScrollLayout) {
+    fun initialize(parent: NotificationStackScrollLayout, showHeaders: Boolean) {
         check(!initialized) { "NotificationSectionsManager already initialized" }
         initialized = true
+        this.showHeaders = showHeaders
         this.parent = parent
         reinflateViews()
         configurationController.addCallback(configurationListener)
@@ -105,6 +107,20 @@ class NotificationSectionsManager @Inject internal constructor(
         incomingHeaderController.reinflateView(parent)
         mediaContainerController.reinflateView(parent)
         keyguardMediaController.attachSinglePaneContainer(mediaControlsView)
+
+        // set visibilities
+        val vis = if (showHeaders) View.VISIBLE else View.GONE
+        silentHeaderView?.visibility = vis
+        alertingHeaderView?.visibility = vis
+        peopleHeaderView?.visibility = vis
+        incomingHeaderView?.visibility = vis
+        mediaControlsView?.visibility = vis
+    }
+
+    fun setHeadersVisibility(visible: Boolean) {
+        if (showHeaders == visible) return
+        showHeaders = visible
+        reinflateViews()
     }
 
     override fun beginsSection(view: View, previous: View?): Boolean =

@@ -5767,6 +5767,261 @@ public final class Settings {
          */
         @Readable
         public static final String OMNI_ADVANCED_REBOOT = "advanced_reboot";
+ 
+        /**
+	 * Whether to show qs footer text
+         * @hide
+         */
+        @Readable
+        public static final String QS_FOOTER_TEXT_SHOW = "qs_footer_text_show";
+
+        /**
+         * QS footer text
+         * @hide
+         */
+        @Readable
+        public static final String QS_FOOTER_TEXT_STRING = "qs_footer_text_string";
+
+        /**
+         * Whether to show the battery info on the lockscreen while charging
+         * @hide
+         */
+        @Readable
+        public static final String LOCKSCREEN_BATTERY_INFO = "lockscreen_battery_info";
+
+        /**
+         * Whether to show network traffic indicator in statusbar
+         * @hide
+         */
+        @Readable
+        public static final String NETWORK_TRAFFIC_STATE = "network_traffic_state";
+
+        /**
+    	 * What to show in network traffic indicator in statusbar
+    	 * @hide
+    	 */
+        @Readable
+        public static final String NETWORK_TRAFFIC_TYPE = "network_traffic_type";
+
+        /**
+         * Network traffic inactivity threshold (default is 1 kBs)
+         * @hide
+         */
+        @Readable
+        public static final String NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD = "network_traffic_autohide_threshold";
+
+        /**
+         * Whether to disable showing arrows in statusbar network traffic indicators
+         * @hide
+         */
+        @Readable
+        public static final String NETWORK_TRAFFIC_ARROW = "network_traffic_arrow";
+
+        /**
+         * What size to show for network traffic indicator in statusbar
+         * @hide
+         */
+        @Readable
+        public static final String NETWORK_TRAFFIC_FONT_SIZE = "network_traffic_font_size";
+
+        /**
+         * Show network traffic indicator
+         * 0 - Statusbar (default)
+         * 1 - QS Header
+         * @hide
+         */
+        @Readable
+        public static final String NETWORK_TRAFFIC_VIEW_LOCATION = "network_traffic_view_location";
+
+        /**
+         * Whether gaming mode sets {@link Global.HEADS_UP_NOTIFICATIONS_ENABLED}
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_HEADS_UP = "gaming_mode_heads_up";
+
+        /**
+         * Whether gaming mode sets DND {@link Global.ZEN_MODE}
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_ZEN = "gaming_mode_zen";
+
+        /**
+         * Gaming mode ringer
+         * 0 = Disabled / Don't change (default)
+         * 1 = Vibrate
+         * 2 = Silent
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_RINGER = "gaming_mode_ringer";
+
+        /**
+         * Whether gaming mode sets {@link FORCE_SHOW_NAVBAR}
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_NAVBAR = "gaming_mode_navbar";
+
+        /**
+         * Whether gaming mode sets {@link HARDWARE_KEYS_DISABLE}
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_HW_BUTTONS = "gaming_mode_hw_buttons";
+
+        /**
+         * Whether gaming mode sets night light
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_NIGHT_LIGHT = "gaming_mode_night_light";
+
+        /**
+         * Whether to disable battery saver schedule when gaming mode is on
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_BATTERY_SCHEDULE = "gaming_mode_battery_schedule";
+
+        /**
+         * Whether to enable bluetooth when gaming mode is on
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_BLUETOOTH = "gaming_mode_bluetooth";
+
+        /**
+         * Whether gaming mode toggles auto brightness
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_BRIGHTNESS_ENABLED = "gaming_mode_brightness_enabled";
+
+        /**
+         * Gaming mode brightness level in percentage
+         * 0 = disabled
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_BRIGHTNESS = "gaming_mode_brightness";
+
+        /**
+         * Whether gaming mode sets media volume
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_MEDIA_ENABLED = "gaming_mode_media_enabled";
+
+        /**
+         * Gaming mode media volume level in percentage
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_MEDIA = "gaming_mode_media";
+
+        /**
+         * Whether gaming mode turns off when screen is off
+         * @hide
+         */
+        @Readable
+        public static final String GAMING_MODE_SCREEN_OFF = "gaming_mode_screen_off";
+
+        /**
+         * Controls whether to show notification headers
+         * @hide
+         */
+        @Readable
+        public static final String NOTIFICATION_HEADERS = "notification_headers";
+
+        /**
+         * Which Vibration Pattern to use
+         * 0: dzzz-dzzz
+         * 1: dzzz-da
+         * 2: mm-mm-mm
+         * 3: da-da-dzzz
+         * 4: da-dzzz-da
+         * 5: custom
+         * @hide
+         */
+        @Readable
+        public static final String RINGTONE_VIBRATION_PATTERN = "ringtone_vibration_pattern";
+
+        /**
+         * Custom vibration pattern
+         * format: ms,ms,ms each a range from 0 to 1000 ms
+         * @hide
+         */
+        @Readable
+        public static final String CUSTOM_RINGTONE_VIBRATION_PATTERN = "custom_ringtone_vibration_pattern";
+
+        /**
+         * Whether the phone vibrates on call connect
+         * @hide
+         */
+        @Readable
+        public static final String VIBRATE_ON_CONNECT = "vibrate_on_connect";
+
+        /**
+         * Whether the phone vibrates on call waiting
+         * @hide
+         */
+        @Readable
+        public static final String VIBRATE_ON_CALLWAITING = "vibrate_on_callwaiting";
+
+        /**
+         * Whether the phone vibrates on disconnect
+         * @hide
+         */
+        @Readable
+        public static final String VIBRATE_ON_DISCONNECT = "vibrate_on_disconnect";
+
+        /**
+         * Volume dialog timeout. Value in seconds
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_DIALOG_TIMEOUT = "volume_dialog_timeout";
+
+        /**
+         * Whether the torch launch gesture to double tap or long press the power button when the
+         * screen is off should be enabled. *
+         * 0: disabled
+         * 1: double tap power for torch
+         * 2: long tap power for torch
+         * @hide
+         */
+        @Readable
+        public static final String TORCH_POWER_BUTTON_GESTURE = "torch_power_button_gesture";
+
+        /**
+         * Double tap on lockscreen to sleep
+         * @hide
+         */
+        @Readable
+        public static final String DOUBLE_TAP_SLEEP_LOCKSCREEN = "double_tap_sleep_lockscreen";
+
+        /**
+         * Enable statusbar double tap gesture to put device to sleep
+         * @hide
+         */
+        @Readable
+        public static final String DOUBLE_TAP_SLEEP_GESTURE = "double_tap_sleep_gesture";
+
+        /**
+         * Whether volume button music control is enabled
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_BUTTON_MUSIC_CONTROL = "volume_button_music_control";
+
+        /**
+         * Time required for volume button music control to be pressed
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_BUTTON_MUSIC_CONTROL_DELAY = "volume_button_music_control_delay";
 
         /**
          * IMPORTANT: If you add a new public settings you also have to add it to
@@ -5789,7 +6044,6 @@ public final class Settings {
          * process when restoring historical backup datasets.
          *
          * All settings in {@link LEGACY_RESTORE_SETTINGS} array *must* have a non-null validator,
-         * otherwise they won't be restored.
          *
          * @hide
          */
@@ -5916,6 +6170,16 @@ public final class Settings {
             PRIVATE_SETTINGS.add(SCREEN_FLASH_NOTIFICATION_COLOR);
             PRIVATE_SETTINGS.add(CALL_CONNECTED_TONE_ENABLED);
             PRIVATE_SETTINGS.add(POCKET_JUDGE);
+            PRIVATE_SETTINGS.add(LOCKSCREEN_BATTERY_INFO);
+            PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_STATE);
+            PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_TYPE);
+            PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD);
+            PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_ARROW);
+            PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_FONT_SIZE);
+            PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_VIEW_LOCATION);
+            PRIVATE_SETTINGS.add(VIBRATE_ON_CONNECT);
+            PRIVATE_SETTINGS.add(VIBRATE_ON_CALLWAITING);
+            PRIVATE_SETTINGS.add(VIBRATE_ON_DISCONNECT);
         }
 
         /**
@@ -9351,6 +9615,28 @@ public final class Settings {
         public static final String DOZE_ALWAYS_ON = "doze_always_on";
 
         /**
+         * Indicates whether doze turns on automatically
+         * 0 = disabled (default)
+         * 1 = from sunset to sunrise
+         * 2 = custom time
+         * 3 = from sunset till a time
+         * 4 = from a time till sunrise
+         * @hide
+         */
+        @Readable
+        public static final String DOZE_ALWAYS_ON_AUTO_MODE = "doze_always_on_auto_mode";
+
+        /**
+         * The custom time {@link DOZE_ALWAYS_ON} should be on at
+         * Only relevant when {@link DOZE_ALWAYS_ON_AUTO_MODE} is set to 2 and above
+         * 0 = Disabled (default)
+         * format: HH:mm,HH:mm (since,till)
+         * @hide
+         */
+        @Readable
+        public static final String DOZE_ALWAYS_ON_AUTO_TIME = "doze_always_on_auto_time";
+
+        /**
          * Whether the device should pulse on pick up gesture.
          * @hide
          */
@@ -10933,14 +11219,25 @@ public final class Settings {
 
         /**
          * What behavior should be invoked when the volume hush gesture is triggered
-         * One of VOLUME_HUSH_OFF, VOLUME_HUSH_VIBRATE, VOLUME_HUSH_MUTE.
-         *
+         * Either YAAP_VOLUME_HUSH_OFF or a comma separated list of modes. One or more of:
+         * YAAP_VOLUME_HUSH_NORMAL, YAAP_VOLUME_HUSH_VIBRATE, YAAP_VOLUME_HUSH_MUTE
          * @hide
          */
         @SystemApi
         @Readable
         public static final String VOLUME_HUSH_GESTURE = "volume_hush_gesture";
 
+        /** @hide */
+        public static final String YAAP_VOLUME_HUSH_OFF = "off";
+        /** @hide */
+        public static final String YAAP_VOLUME_HUSH_NORMAL = "normal";
+        /** @hide */
+        public static final String YAAP_VOLUME_HUSH_VIBRATE = "vibrate";
+        /** @hide */
+        public static final String YAAP_VOLUME_HUSH_MUTE = "mute";
+
+        // Following ints are now useless
+        // We can't remove or change those without changing the sdk
         /** @hide */
         @SystemApi
         public static final int VOLUME_HUSH_OFF = 0;
@@ -11731,6 +12028,20 @@ public final class Settings {
          */
         @Readable
         public static final String EXTRA_DIM_AUTO_TIME = "extra_dim_auto_time";
+
+        /**
+         * Whether to enable DOZE only when charging
+         * @hide
+         */
+        @Readable
+        public static final String DOZE_ON_CHARGE = "doze_on_charge";
+
+        /**
+         * hidden stting of the current atate of DOZE only when charging
+         * @hide
+         */
+        @Readable
+        public static final String DOZE_ON_CHARGE_NOW = "doze_on_charge_now";
 
         /**
          * These entries are considered common between the personal and the managed profile,

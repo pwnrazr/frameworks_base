@@ -163,6 +163,28 @@ public class SecureSettingsValidators {
         VALIDATORS.put(Secure.STATUS_BAR_SHOW_VIBRATE_ICON, BOOLEAN_VALIDATOR);
         VALIDATORS.put(Secure.DOZE_ENABLED, BOOLEAN_VALIDATOR);
         VALIDATORS.put(Secure.DOZE_ALWAYS_ON, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(Secure.DOZE_ALWAYS_ON_AUTO_MODE, new DiscreteValueValidator(new String[] {"0", "1", "2", "3", "4"}));
+        VALIDATORS.put(Secure.DOZE_ALWAYS_ON_AUTO_TIME, new Validator() {
+                @Override
+                public boolean validate(String value) {
+                    String[] values = value.split(",", 0);
+                    if (values.length != 2) return false;
+                    for (String str : values) {
+                        String[] time = str.split(":", 0);
+                        if (time.length != 2) return false;
+                        int hour, minute;
+                        try {
+                            hour = Integer.valueOf(time[0]);
+                            minute = Integer.valueOf(time[1]);
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                        if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
+                            return false;
+                    }
+                    return true;
+                }
+        });
         VALIDATORS.put(Secure.DOZE_PICK_UP_GESTURE, BOOLEAN_VALIDATOR);
         VALIDATORS.put(Secure.DOZE_DOUBLE_TAP_GESTURE, BOOLEAN_VALIDATOR);
         VALIDATORS.put(Secure.DOZE_TAP_SCREEN_GESTURE, BOOLEAN_VALIDATOR);
@@ -210,7 +232,22 @@ public class SecureSettingsValidators {
         VALIDATORS.put(Secure.SCREENSAVER_HOME_CONTROLS_ENABLED, BOOLEAN_VALIDATOR);
         VALIDATORS.put(Secure.LOCKDOWN_IN_POWER_MENU, BOOLEAN_VALIDATOR);
         VALIDATORS.put(Secure.SHOW_FIRST_CRASH_DIALOG_DEV_OPTION, BOOLEAN_VALIDATOR);
-        VALIDATORS.put(Secure.VOLUME_HUSH_GESTURE, NON_NEGATIVE_INTEGER_VALIDATOR);
+        VALIDATORS.put(Secure.VOLUME_HUSH_GESTURE,
+                new Validator() {
+                    @Override
+                    public boolean validate(String value) {
+                        if (value.equals(Secure.YAAP_VOLUME_HUSH_OFF))
+                            return true;
+                        String[] args = value.split(",", 0);
+                        for (String str : args) {
+                            if (!str.equals(Secure.YAAP_VOLUME_HUSH_NORMAL) &&
+                                !str.equals(Secure.YAAP_VOLUME_HUSH_MUTE) &&
+                                !str.equals(Secure.YAAP_VOLUME_HUSH_VIBRATE))
+                                return false;
+                        }
+                        return true;
+                    }
+                });
         VALIDATORS.put(
                 Secure.ENABLED_NOTIFICATION_LISTENERS,
                 COLON_SEPARATED_COMPONENT_LIST_VALIDATOR); // legacy restore setting
@@ -388,5 +425,6 @@ public class SecureSettingsValidators {
         VALIDATORS.put(Secure.EXTRA_DIM_AUTO_TIME, TIME_RANGE_VALIDATOR);
         VALIDATORS.put(Secure.DC_DIM_AUTO_MODE, new DiscreteValueValidator(new String[] {"0", "1", "2", "3", "4"}));
         VALIDATORS.put(Secure.DC_DIM_AUTO_TIME, TIME_RANGE_VALIDATOR);
+        VALIDATORS.put(Secure.DOZE_ON_CHARGE, BOOLEAN_VALIDATOR);
     }
 }

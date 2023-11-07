@@ -225,8 +225,10 @@ public interface StatusBarIconController {
 
         @Override
         public void onSetIcon(int viewIndex, StatusBarIcon icon) {
-            super.onSetIcon(viewIndex, icon);
-            mDarkIconDispatcher.applyDark((DarkReceiver) mGroup.getChildAt(viewIndex));
+            View view = mGroup.getChildAt(viewIndex);
+            if (view instanceof StatusBarIconView) {
+                ((StatusBarIconView) view).set(icon);
+            }
         }
 
         @Override
@@ -635,6 +637,7 @@ public interface StatusBarIconController {
         }
 
         public void onSetIcon(int viewIndex, StatusBarIcon icon) {
+            if (!(mGroup.getChildAt(viewIndex) instanceof StatusBarIconView)) return;
             StatusBarIconView view = (StatusBarIconView) mGroup.getChildAt(viewIndex);
             view.set(icon);
         }
