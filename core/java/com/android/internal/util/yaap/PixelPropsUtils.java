@@ -54,6 +54,14 @@ public final class PixelPropsUtils {
     private static final String build_fp = mResources.getString(R.string.build_fp);
     private static final String build_model = mResources.getString(R.string.build_model);
 
+    private static final HashMap<String, String> marlinProps = new HashMap<>(Map.of(
+        "ID", "NJH47F",
+        "MODEL", "Pixel XL",
+        "PRODUCT", "marlin",
+        "DEVICE", "marlin",
+        "FINGERPRINT", "google/marlin/marlin:7.1.2/NJH47F/4146041:user/release-keys"
+    ));
+
     private static final HashMap<String, String> certifiedProps = new HashMap<>(Map.of(
         "ID", "NRD90M",
         "BRAND", "NVIDIA",
