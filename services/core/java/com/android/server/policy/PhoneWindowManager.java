@@ -27,6 +27,8 @@ import static android.content.pm.PackageManager.FEATURE_LEANBACK;
 import static android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE;
 import static android.content.pm.PackageManager.FEATURE_WATCH;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.media.session.MediaController.PlaybackInfo.PLAYBACK_TYPE_REMOTE;
+import static android.media.session.PlaybackState.STATE_PLAYING;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.O;
 import static android.provider.Settings.Secure.YAAP_VOLUME_HUSH_OFF;
@@ -128,7 +130,9 @@ import android.media.AudioManager;
 import android.media.AudioManagerInternal;
 import android.media.AudioSystem;
 import android.media.IAudioService;
+import android.media.session.MediaController;
 import android.media.session.MediaSessionLegacyHelper;
+import android.media.session.MediaSessionManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.DeviceIdleManager;
@@ -670,6 +674,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private int mKeyguardDrawnTimeout = 1000;
 
     private int mTorchActionMode;
+    private boolean mUnhandledTorchPower = false;
+    private static final int TORCH_ACTION_NONE = 0;
+    private static final int TORCH_ACTION_DOUBLE = 1;
+    private static final int TORCH_ACTION_LONG = 2;
 
     private final List<DeviceKeyHandler> mDeviceKeyHandlers = new ArrayList<>();
 
@@ -714,9 +722,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private static final int MSG_RINGER_TOGGLE_CHORD = 24;
     private static final int MSG_SWITCH_KEYBOARD_LAYOUT = 25;
     private static final int MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK = 26;
+    private static final int MSG_QUICK_MUTE = 27;
 
     private boolean mVolumeMusicControlActive;
     private boolean mVolumeMusicControl;
+    private int mVolumeMusicControlDelay;
+
+    private boolean mQuickMute;
+    private boolean mUnhandledQuickMute = false;
+    private int mQuickMuteDelay;
 
     private class PolicyHandler extends Handler {
         @Override
@@ -794,11 +808,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     handleSwitchKeyboardLayout(msg.arg1, msg.arg2);
                     break;
                 case MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK:
-                    KeyEvent event = (KeyEvent) msg.obj;
-                    dispatchMediaKeyWithWakeLockToAudioService(event);
-                    dispatchMediaKeyWithWakeLockToAudioService(
-                            KeyEvent.changeAction(event, KeyEvent.ACTION_UP));
-                    mVolumeMusicControlActive = true;
+                    handleVolkeyMusicControl((KeyEvent)msg.obj);
+                    break;
+                case MSG_QUICK_MUTE:
+                    maybePerformQuickMute();
                     break;
             }
         }
@@ -866,6 +879,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.VOLUME_BUTTON_MUSIC_CONTROL), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.VOLUME_BUTTON_MUSIC_CONTROL_DELAY), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.VOLUME_BUTTON_QUICK_MUTE), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.VOLUME_BUTTON_QUICK_MUTE_DELAY), false, this,
                     UserHandle.USER_ALL);
             updateSettings();
         }
@@ -988,9 +1010,6 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mPowerKeyWakeLock.acquire();
         }
 
-        // Still allow muting call with power button press.
-        boolean blockInputs = mIsDeviceInPocket && (!interactive || mPocketLockShowing);
-
         mWindowManagerFuncs.onPowerKeyDown(interactive);
 
         // Stop ringing or end call if configured to do so when power is pressed.
@@ -1001,7 +1020,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 // Pressing Power while there's a ringing incoming
                 // call should silence the ringer.
                 telecomManager.silenceRinger();
-            } else if (!blockInputs && (mIncallPowerBehavior
+            } else if ((mIncallPowerBehavior
                     & Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR_HANGUP) != 0
                     && telecomManager.isInCall() && interactive) {
                 // Otherwise, if "Power button ends call" is enabled,
@@ -1025,8 +1044,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         if (!mPowerKeyHandled) {
             if (!interactive) {
-                if (mTorchActionMode == 0) {
+                if (mTorchActionMode == TORCH_ACTION_NONE) {
                     wakeUpFromPowerKey(event.getDownTime());
+                } else {
+                    mUnhandledTorchPower = true;
                 }
             }
         } else {
@@ -1065,13 +1086,14 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mSideFpsEventHandler.notifyPowerPressed();
         }
         if (mDefaultDisplayPolicy.isScreenOnEarly() && !mDefaultDisplayPolicy.isScreenOnFully()
-            && mTorchActionMode != 1) {
+            && mTorchActionMode != TORCH_ACTION_DOUBLE) {
             Slog.i(TAG, "Suppressed redundant power key press while "
                     + "already in the process of turning the screen on.");
             return;
         }
 
         final boolean interactive = mDefaultDisplayPolicy.isAwake();
+        final boolean torchActionEnabled = mTorchActionMode != TORCH_ACTION_NONE;
 
         Slog.d(TAG, "powerPress: eventTime=" + eventTime + " interactive=" + interactive
                 + " count=" + count + " beganFromNonInteractive=" + beganFromNonInteractive
@@ -1083,6 +1105,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             powerMultiPressAction(eventTime, interactive, mTriplePressOnPowerBehavior);
         } else if (count > 3 && count <= getMaxMultiPressPowerCount()) {
             Slog.d(TAG, "No behavior defined for power press count " + count);
+        } else if (count == 1 && interactive &&
+                mUnhandledTorchPower && beganFromNonInteractive && torchActionEnabled) { 
+            wakeUpFromPowerKey(eventTime);
+            return;
         } else if (count == 1 && interactive && !beganFromNonInteractive) {
             if (mSideFpsEventHandler.shouldConsumeSinglePress(eventTime)) {
                 Slog.i(TAG, "Suppressing power key because the user is interacting with the "
@@ -1133,7 +1159,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     break;
                 }
             }
-        } else if (mTorchActionMode != 0 && beganFromNonInteractive) {
+        }
+        if (mUnhandledTorchPower && torchActionEnabled && beganFromNonInteractive) {
             wakeUpFromPowerKey(eventTime);
         }
     }
@@ -1303,7 +1330,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             return 3;
         }
         if (mDoublePressOnPowerBehavior != MULTI_PRESS_POWER_NOTHING ||
-                mTorchActionMode == 1) {
+                mTorchActionMode == TORCH_ACTION_DOUBLE) {
             return 2;
         }
         return 1;
@@ -2576,23 +2603,26 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         @Override
         void onMultiPress(long downTime, int count) {
-            if (mSingleKeyGestureDetector.beganFromNonInteractive()) {
+            final boolean beganFromNonInteractive =
+                    mSingleKeyGestureDetector.beganFromNonInteractive();
+            if (beganFromNonInteractive) {
                 if (handleTorchPress(false)) {
                     mSingleKeyGestureDetector.reset();
                     return;
                 }
             }
-            powerPress(downTime, count, mSingleKeyGestureDetector.beganFromNonInteractive());
+            powerPress(downTime, count, beganFromNonInteractive);
         }
     }
 
     public boolean handleTorchPress(boolean longpress) {
-        if (mTorchActionMode == 2 && longpress) {
+        if (mIsDeviceInPocket) return false;
+        if (mTorchActionMode == TORCH_ACTION_LONG && longpress) {
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, false,
                     "Power - Long Press - Torch");
             YaapUtils.toggleCameraFlash();
             return true;
-        } else if (mTorchActionMode == 1 && !longpress) {
+        } else if (mTorchActionMode == TORCH_ACTION_DOUBLE && !longpress) {
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, false,
                       "Power - Double Press - Torch");
             YaapUtils.toggleCameraFlash();
@@ -2744,6 +2774,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mVolumeMusicControl = Settings.System.getIntForUser(resolver,
                     Settings.System.VOLUME_BUTTON_MUSIC_CONTROL, 0,
                     UserHandle.USER_CURRENT) != 0;
+            mVolumeMusicControlDelay = Settings.System.getIntForUser(resolver,
+                    Settings.System.VOLUME_BUTTON_MUSIC_CONTROL_DELAY, 500,
+                    UserHandle.USER_CURRENT);
+            mQuickMute = Settings.System.getIntForUser(resolver,
+                    Settings.System.VOLUME_BUTTON_QUICK_MUTE, 0,
+                    UserHandle.USER_CURRENT) != 0;
+            mQuickMuteDelay = Settings.System.getIntForUser(resolver,
+                    Settings.System.VOLUME_BUTTON_QUICK_MUTE_DELAY, 800,
+                    UserHandle.USER_CURRENT);
 
             // Configure wake gesture.
             boolean wakeGestureEnabledSetting = Settings.Secure.getIntForUser(resolver,
@@ -2794,7 +2833,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     Secure.STYLUS_BUTTONS_ENABLED, 1, UserHandle.USER_CURRENT) == 1;
             mInputManagerInternal.setStylusButtonMotionEventsEnabled(mStylusButtonsEnabled);
             mTorchActionMode = Settings.System.getIntForUser(resolver,
-                    Settings.System.TORCH_POWER_BUTTON_GESTURE, 0, UserHandle.USER_CURRENT);
+                    Settings.System.TORCH_POWER_BUTTON_GESTURE,
+                    TORCH_ACTION_NONE, UserHandle.USER_CURRENT);
         }
         if (updateRotation) {
             updateRotation(true);
@@ -4279,21 +4319,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             return 0;
         }
 
-        // poacket judge handling
-        if (mIsDeviceInPocket && (!interactive || mPocketLockShowing)) {
-            if (keyCode != KeyEvent.KEYCODE_POWER &&
-                keyCode != KeyEvent.KEYCODE_VOLUME_UP &&
-                keyCode != KeyEvent.KEYCODE_VOLUME_DOWN &&
-                keyCode != KeyEvent.KEYCODE_MEDIA_PLAY &&
-                keyCode != KeyEvent.KEYCODE_MEDIA_PAUSE &&
-                keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE &&
-                keyCode != KeyEvent.KEYCODE_HEADSETHOOK &&
-                keyCode != KeyEvent.KEYCODE_MEDIA_STOP &&
-                keyCode != KeyEvent.KEYCODE_MEDIA_NEXT &&
-                keyCode != KeyEvent.KEYCODE_MEDIA_PREVIOUS &&
-                keyCode != KeyEvent.KEYCODE_VOLUME_MUTE) {
-                return 0;
-            }
+        // pocket judge handling
+        if (mIsDeviceInPocket && (!interactive || mPocketLockShowing) && isWakeKey) {
+            return 0;
         }
 
         // Handle special keys.
@@ -4381,15 +4409,16 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     result |= ACTION_PASS_TO_USER;
                 } else if ((result & ACTION_PASS_TO_USER) == 0) {
                     boolean notHandledMusicControl = false;
-                    if (!interactive && mVolumeMusicControl && isMusicActive()) {
+                    if (!interactive && mVolumeMusicControl &&
+                            (isMusicActive() || isMusicActiveRemotely())) {
                         if (down) {
-                            int timeout = Settings.System.getIntForUser(mContext.getContentResolver(),
-                                    Settings.System.VOLUME_BUTTON_MUSIC_CONTROL_DELAY, 500, mCurrentUserId);
                             if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                                scheduleLongPressKeyEvent(event, KeyEvent.KEYCODE_MEDIA_PREVIOUS, timeout);
+                                scheduleLongPressKeyEvent(event, KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                                        mVolumeMusicControlDelay);
                                 break;
                             } else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-                                scheduleLongPressKeyEvent(event, KeyEvent.KEYCODE_MEDIA_NEXT, timeout);
+                                scheduleLongPressKeyEvent(event, KeyEvent.KEYCODE_MEDIA_NEXT,
+                                        mVolumeMusicControlDelay);
                                 break;
                             }
                         } else {
@@ -4412,6 +4441,18 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                             MediaSessionLegacyHelper.getHelper(mContext)
                                     .sendVolumeKeyEvent(newEvent, AudioManager.USE_DEFAULT_STREAM_TYPE, true);
                         }
+                    }
+                } else if (mQuickMute) {
+                    if (down) {
+                        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN && !mUnhandledQuickMute) {
+                            Message msg = mHandler.obtainMessage(MSG_QUICK_MUTE);
+                            msg.setAsynchronous(true);
+                            mHandler.sendMessageDelayed(msg, mQuickMuteDelay);
+                            mUnhandledQuickMute = true;
+                        }
+                    } else {
+                        mHandler.removeMessages(MSG_QUICK_MUTE);
+                        mUnhandledQuickMute = false;
                     }
                 }
                 break;
@@ -4682,9 +4723,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             return;
         }
 
-        if (event.getKeyCode() == KEYCODE_POWER && event.getAction() == KeyEvent.ACTION_DOWN
-                && mTorchActionMode != 1) {
-            mPowerKeyHandled = handleCameraGesture(event, interactive);
+        if (event.getKeyCode() == KEYCODE_POWER && event.getAction() == KeyEvent.ACTION_DOWN) {
+            mPowerKeyHandled = mTorchActionMode != TORCH_ACTION_DOUBLE
+                    && handleCameraGesture(event, interactive);
             if (mPowerKeyHandled) {
                 // handled by camera gesture.
                 mSingleKeyGestureDetector.reset();
@@ -5436,7 +5477,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             try {
                 handler.onPocketStateChanged(mIsDeviceInPocket);
             } catch (Exception e) {
-                Slog.w(TAG, "Could not notify poacket mode to device key handler", e);
+                Slog.w(TAG, "Could not notify pocket mode to device key handler", e);
             }
         }
     }
@@ -6745,9 +6786,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
 
     /**
-     * @return Whether music is being played right now "locally" (e.g. on the device's speakers
-     *    or wired headphones) or "remotely" (e.g. on a device using the Cast protocol and
-     *    controlled by this device, or through remote submix).
+     * @return Whether music is being played right now "locally"
+     *         (e.g. on the device's speakers, wired headphones and bluetooth) 
+     *         or "remotely" (e.g. on a device using the Cast protocol and
+     *         controlled by this device and through a remote submix).
      */
     private boolean isMusicActive() {
         final AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
@@ -6758,11 +6800,88 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         return am.isMusicActive();
     }
 
+    /**
+     * @return Whether a remote media is currently present and controlled by this device
+     *         Either paused or playing
+     */
+    private boolean isMusicActiveRemotely() {
+        if (isMusicActive()) return false; // local takes priority
+        final MediaSessionManager msm = (MediaSessionManager) mContext
+                .getSystemService(Context.MEDIA_SESSION_SERVICE);
+        final List<MediaController> sessions = msm.getActiveSessions(null);
+        for (MediaController session : sessions)
+            if (session.getPlaybackInfo().getPlaybackType() == PLAYBACK_TYPE_REMOTE)
+                return true;
+        return false;
+    }
+
+    /**
+     * @return The first remote *playing* media session. null if does not exist
+     */
+    private MediaController getRemoteMusicSession() {
+        final MediaSessionManager msm = (MediaSessionManager) mContext
+                .getSystemService(Context.MEDIA_SESSION_SERVICE);
+        final List<MediaController> sessions = msm.getActiveSessions(null);
+        for (MediaController session : sessions) {
+            if (session.getPlaybackInfo().getPlaybackType() == PLAYBACK_TYPE_REMOTE &&
+                session.getPlaybackState().getState() == STATE_PLAYING) {
+                return session;
+            }
+        }
+        return null;
+    }
+
     private void scheduleLongPressKeyEvent(KeyEvent origEvent, int keyCode, int timeout) {
         KeyEvent event = new KeyEvent(origEvent.getDownTime(), origEvent.getEventTime(),
                 origEvent.getAction(), keyCode, 0);
         Message msg = mHandler.obtainMessage(MSG_DISPATCH_VOLKEY_WITH_WAKE_LOCK, event);
         msg.setAsynchronous(true);
         mHandler.sendMessageDelayed(msg, timeout);
+    }
+
+    private void handleVolkeyMusicControl(KeyEvent event) {
+        final MediaController session = getRemoteMusicSession();
+        if (session != null) {
+            // remote stream exists and is playing - send the media keys directly to it
+            session.dispatchMediaButtonEvent(event);
+            session.dispatchMediaButtonEvent(
+                    KeyEvent.changeAction(event, KeyEvent.ACTION_UP));
+        } else {
+            // playing locally - dispatch to AudioService
+            dispatchMediaKeyWithWakeLockToAudioService(event);
+            dispatchMediaKeyWithWakeLockToAudioService(
+                    KeyEvent.changeAction(event, KeyEvent.ACTION_UP));
+        }
+        mVolumeMusicControlActive = true;
+    }
+
+    private void maybePerformQuickMute() {
+        // never mute in-call volume
+        int audioMode = AudioManager.MODE_NORMAL;
+        try {
+            audioMode = getAudioService().getMode();
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting AudioService in maybePerformQuickMute.", e);
+        }
+        TelecomManager telecomManager = getTelecommService();
+        final boolean isInCall = (telecomManager != null && telecomManager.isInCall()) ||
+                audioMode != AudioManager.MODE_NORMAL;
+        if (isInCall) return;
+
+        // when we cast the default volume stream becomes the remote one, do not mute
+        if (isMusicActiveRemotely()) return;
+
+        // making sure there are no more volume down presses queued
+        mHandler.removeMessages(MSG_SYSTEM_KEY_PRESS);
+        
+        // muting current stream
+        final AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        if (am == null) {
+            Log.w(TAG, "maybePerformQuickMute: couldn't get AudioManager reference");
+            return;
+        }
+        final int mediaStream = AudioManager.STREAM_MUSIC;
+        final int minVol = am.getStreamMinVolumeInt(mediaStream);
+        am.setStreamVolume(mediaStream, minVol, AudioManager.FLAG_SHOW_UI);
     }
 }

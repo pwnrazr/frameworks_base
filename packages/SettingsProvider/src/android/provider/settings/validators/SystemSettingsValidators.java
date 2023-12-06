@@ -20,6 +20,7 @@ import static android.provider.settings.validators.SettingsValidators.ANY_INTEGE
 import static android.provider.settings.validators.SettingsValidators.ANY_STRING_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.BOOLEAN_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.COMPONENT_NAME_VALIDATOR;
+import static android.provider.settings.validators.SettingsValidators.CUSTOM_VIBRATION_PATTERN_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.LENIENT_IP_ADDRESS_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.URI_VALIDATOR;
@@ -217,7 +218,9 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.WIFI_STATIC_NETMASK, LENIENT_IP_ADDRESS_VALIDATOR);
         VALIDATORS.put(System.WIFI_STATIC_DNS1, LENIENT_IP_ADDRESS_VALIDATOR);
         VALIDATORS.put(System.WIFI_STATIC_DNS2, LENIENT_IP_ADDRESS_VALIDATOR);
+        VALIDATORS.put(System.FORCE_FULLSCREEN_CUTOUT_APPS, ANY_STRING_VALIDATOR);
         VALIDATORS.put(System.SHOW_BATTERY_PERCENT, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.SHOW_BATTERY_PERCENT_CHARGING, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.NOTIFICATION_LIGHT_PULSE, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.WEAR_ACCESSIBILITY_GESTURE_ENABLED, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.CLOCKWORK_BLUETOOTH_SETTINGS_PREF, BOOLEAN_VALIDATOR);
@@ -253,30 +256,55 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.GAMING_MODE_SCREEN_OFF, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.NOTIFICATION_HEADERS, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.RINGTONE_VIBRATION_PATTERN, new InclusiveIntegerRangeValidator(0, 5));
-        VALIDATORS.put(System.CUSTOM_RINGTONE_VIBRATION_PATTERN,
-                new Validator() {
-                    @Override
-                    public boolean validate(String value) {
-                        String[] args = value.split(",", 0);
-                        if (args.length != 3) return false;
-                        try {
-                            for (String str : args)
-                                if (Integer.parseInt(str) < 0)
-                                    return false;
-                        } catch (NumberFormatException e) {
-                            return false;
-                        }
-                        return true;
-                    }
-                });
+        VALIDATORS.put(System.CUSTOM_RINGTONE_VIBRATION_PATTERN, CUSTOM_VIBRATION_PATTERN_VALIDATOR);
         VALIDATORS.put(System.VIBRATE_ON_CONNECT, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.VIBRATE_ON_CALLWAITING, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.VIBRATE_ON_DISCONNECT, BOOLEAN_VALIDATOR);
-        VALIDATORS.put(System.VOLUME_DIALOG_TIMEOUT, NON_NEGATIVE_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.VOLUME_DIALOG_TIMEOUT, new InclusiveIntegerRangeValidator(1, 7));
         VALIDATORS.put(System.TORCH_POWER_BUTTON_GESTURE, new InclusiveIntegerRangeValidator(0, 2));
         VALIDATORS.put(System.DOUBLE_TAP_SLEEP_LOCKSCREEN, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.DOUBLE_TAP_SLEEP_GESTURE, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.VOLUME_BUTTON_MUSIC_CONTROL, BOOLEAN_VALIDATOR);
-        VALIDATORS.put(System.VOLUME_BUTTON_MUSIC_CONTROL_DELAY, NON_NEGATIVE_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.VOLUME_BUTTON_MUSIC_CONTROL_DELAY, new InclusiveIntegerRangeValidator(300, 2000));
+        VALIDATORS.put(System.KEYGAURD_MEDIA_ART, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.QS_SHOW_BATTERY_ESTIMATE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.ENABLE_FLOATING_ROTATION_BUTTON, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.NAVIGATION_BAR_INVERSE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.NAVBAR_LAYOUT_VIEWS,
+                new Validator() {
+                    @Override
+                    public boolean validate(String value) {
+                        if (value.equals("default")) return true;
+                        int scCount = value.length() - value.replace(";", "").length();
+                        if (scCount != 2) return false;
+                        value = value.replace(";", ",");
+                        String[] args = value.split(",", 0);
+                        for (String str : args) {
+                            if (!str.equals("left") &&
+                                !str.equals("right") &&
+                                !str.equals("back") &&
+                                !str.equals("home") &&
+                                !str.equals("recent") &&
+                                !str.equals("space"))
+                                return false;
+                        }
+                        return true;
+                    }
+                });
+        VALIDATORS.put(System.VOLUME_KEY_CURSOR_CONTROL, new InclusiveIntegerRangeValidator(0, 2));
+        VALIDATORS.put(System.STATUS_BAR_BATTERY_STYLE, new InclusiveIntegerRangeValidator(0, 2));
+        VALIDATORS.put(System.SHOW_BATTERY_PERCENT_INSIDE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.VOLUME_BUTTON_QUICK_MUTE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.VOLUME_BUTTON_QUICK_MUTE_DELAY, new InclusiveIntegerRangeValidator(300, 1500));
+        VALIDATORS.put(System.BACK_GESTURE_HEIGHT, new InclusiveIntegerRangeValidator(0, 5));
+        VALIDATORS.put(System.STATUSBAR_CLOCK_POSITION, new InclusiveIntegerRangeValidator(0, 2));
+        VALIDATORS.put(System.NOTIFICATION_VIBRATION_PATTERN, new InclusiveIntegerRangeValidator(0, 5));
+        VALIDATORS.put(System.CUSTOM_NOTIFICATION_VIBRATION_PATTERN, CUSTOM_VIBRATION_PATTERN_VALIDATOR);
+        VALIDATORS.put(System.STATUS_BAR_NOTIF_COUNT, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.FLASHLIGHT_ON_CALL, new InclusiveIntegerRangeValidator(0, 4));
+        VALIDATORS.put(System.FLASHLIGHT_ON_CALL_IGNORE_DND, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.FLASHLIGHT_ON_CALL_RATE, new InclusiveIntegerRangeValidator(1, 5));
+        VALIDATORS.put(System.VOLUME_PANEL_ON_LEFT, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.VOLUME_PANEL_ON_LEFT_LAND, BOOLEAN_VALIDATOR);
     }
 }

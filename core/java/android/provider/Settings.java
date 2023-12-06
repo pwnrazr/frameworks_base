@@ -5701,6 +5701,15 @@ public final class Settings {
         public static final String SHOW_BATTERY_PERCENT = "status_bar_show_battery_percent";
 
         /**
+         * Setting to determine whether or not to show the battery percentage in the status bar when charging
+         *    0 - Don't show percentage
+         *    1 - Show percentage
+         * @hide
+         */
+        @Readable
+        public static final String SHOW_BATTERY_PERCENT_CHARGING = "status_bar_show_battery_percent_charging";
+
+        /**
          * Whether or not to enable multiple audio focus.
          * When enabled, requires more management by user over application playback activity,
          * for instance pausing media apps when another starts.
@@ -6024,11 +6033,117 @@ public final class Settings {
         public static final String VOLUME_BUTTON_MUSIC_CONTROL_DELAY = "volume_button_music_control_delay";
 
         /**
-         * IMPORTANT: If you add a new public settings you also have to add it to
-         * PUBLIC_SETTINGS below. If the new setting is hidden you have to add
-         * it to PRIVATE_SETTINGS below. Also add a validator that can validate
-         * the setting value. See an example above.
+         * Whether to show media album art on keyguard
+         * @hide
          */
+        @Readable
+        public static final String KEYGAURD_MEDIA_ART = "keygaurd_media_art";
+
+        /**
+         * Whether to show battery estimates in QS
+         * @hide
+         */
+        @Readable
+        public static final String QS_SHOW_BATTERY_ESTIMATE = "qs_show_battery_estimate";
+
+        /**
+         * Whether to show floating rotation button
+         * @hide
+         */
+        @Readable
+        public static final String ENABLE_FLOATING_ROTATION_BUTTON = "enable_floating_rotation_button";
+
+        /**
+         * Whether to inverse keys in navigation bar
+         * Default 0
+         * @hide
+         */
+        @Readable
+        public static final String NAVIGATION_BAR_INVERSE = "navigation_bar_inverse";
+
+        /**
+         * Which navigation bar layout to use
+         * @hide
+         */
+        @Readable
+        public static final String NAVBAR_LAYOUT_VIEWS = "navbar_layout_views";
+
+        /**
+         * Volume keys control cursor in text fields (default is 0)
+         * 0 - Disabled
+         * 1 - Volume up/down moves cursor left/right
+         * 2 - Volume up/down moves cursor right/left
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_KEY_CURSOR_CONTROL = "volume_key_cursor_control";
+
+        /**
+         * Style of battery to show.
+         * 0 = protrait (default)
+         * 1 = circle
+         * 2 = text
+         * @hide
+         */
+        @Readable
+        public static final String STATUS_BAR_BATTERY_STYLE = "status_bar_battery_style";
+
+        /**
+         * Whether to draw battery percent inside the icon
+         * @hide
+         */
+        @Readable
+        public static final String SHOW_BATTERY_PERCENT_INSIDE = "status_bar_show_battery_percent_inside";
+
+        /**
+         * Whether to enable quick mute
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_BUTTON_QUICK_MUTE = "volume_button_quick_mute";
+
+        /**
+         * Quick mute activation delay in ms
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_BUTTON_QUICK_MUTE_DELAY = "volume_button_quick_mute_delay";
+
+        /** 
+         * Back gesture activation height 
+         * n/o sixths reduced in height (0 = nothing, default)
+         * value should not exceed 5
+         * @hide 
+         */
+        @Readable
+        public static final String BACK_GESTURE_HEIGHT = "back_gesture_height";
+
+        /**
+         * Whether to show volume panel on the left side
+         * Defaults to com.android.systemui.R.bool.config_audioPanelOnLeftSide
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_PANEL_ON_LEFT = "volume_panel_on_left";
+
+        /**
+         * Whether to show volume panel on the left side on landscape as well
+         * Defaults to com.android.systemui.R.bool.config_audioPanelOnLeftSide
+         * Also depends on {@link #VOLUME_PANEL_ON_LEFT}
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_PANEL_ON_LEFT_LAND = "volume_panel_on_left_land";
+
+        /**
+         * Position to show statusbar clock
+         * 0 = Left (Default)
+         * 1 = Center
+         * 2 = Right
+         * @hide
+         */
+        @Readable
+        public static final String STATUSBAR_CLOCK_POSITION = "statusbar_clock_position";
 
         /**
          * Whether allowing pocket service to register sensors and dispatch informations.
@@ -6040,6 +6155,39 @@ public final class Settings {
         public static final String POCKET_JUDGE = "pocket_judge";
 
         /**
+         * Whether to blink flashlight for incoming calls
+         * 0 = Disabled (Default)
+         * 1 = Blink flashlight only in Ringer mode
+         * 2 = Blink flashlight only when ringer is not audible
+         * 3 = Blink flahslight only when entirely silent
+         * 4 = Blink flashlight always regardless of ringer mode
+         * @hide
+         */
+        @Readable
+        public static final String FLASHLIGHT_ON_CALL = "flashlight_on_call";
+
+        /**
+         * Whether flashlight_on_call ignores DND (Zen Mode)
+         * @hide
+         */
+        @Readable
+        public static final String FLASHLIGHT_ON_CALL_IGNORE_DND = "flashlight_on_call_ignore_dnd";
+
+        /**
+         * Rate in Hz in which to blink flashlight_on_call
+         * @hide
+         */
+        @Readable
+        public static final String FLASHLIGHT_ON_CALL_RATE = "flashlight_on_call_rate";
+
+        /**
+         * IMPORTANT: If you add a new public settings you also have to add it to
+         * PUBLIC_SETTINGS below. If the new setting is hidden you have to add
+         * it to PRIVATE_SETTINGS below. Also add a validator that can validate
+         * the setting value. See an example above.
+         */
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
@@ -6049,6 +6197,42 @@ public final class Settings {
          */
         public static final String[] LEGACY_RESTORE_SETTINGS = {
         };
+
+        /**
+         * Force full screen for devices with cutout
+         * @hide
+         */
+        @Readable
+        public static final String FORCE_FULLSCREEN_CUTOUT_APPS = "force_full_screen_cutout_apps";
+
+        /**
+         * Which notification Vibration Pattern to use
+         * 0: default provided value
+         * 1: dzzz-da
+         * 2: mm-mm-mm
+         * 3: da-da-dzzz
+         * 4: da-dzzz-da
+         * 5: custom
+         * @hide
+         */
+        @Readable
+        public static final String NOTIFICATION_VIBRATION_PATTERN = "notification_vibration_pattern";
+
+        /**
+         * Custom notification vibration pattern
+         * format: ms,ms,ms each a range from 0 to 1000 ms
+         * @hide
+         */
+        @Readable
+        public static final String CUSTOM_NOTIFICATION_VIBRATION_PATTERN = "custom_notification_vibration_pattern";
+
+        /**
+         * Show the pending notification counts as overlays on the status bar
+         * Default 0
+         * @hide
+         */
+        @Readable
+        public static final String STATUS_BAR_NOTIF_COUNT = "status_bar_notif_count";
 
         /**
          * These are all public system settings
@@ -6180,6 +6364,10 @@ public final class Settings {
             PRIVATE_SETTINGS.add(VIBRATE_ON_CONNECT);
             PRIVATE_SETTINGS.add(VIBRATE_ON_CALLWAITING);
             PRIVATE_SETTINGS.add(VIBRATE_ON_DISCONNECT);
+            PRIVATE_SETTINGS.add(FORCE_FULLSCREEN_CUTOUT_APPS);
+            PRIVATE_SETTINGS.add(FLASHLIGHT_ON_CALL);
+            PRIVATE_SETTINGS.add(FLASHLIGHT_ON_CALL_IGNORE_DND);
+            PRIVATE_SETTINGS.add(FLASHLIGHT_ON_CALL_RATE);
         }
 
         /**
@@ -12044,6 +12232,118 @@ public final class Settings {
         public static final String DOZE_ON_CHARGE_NOW = "doze_on_charge_now";
 
         /**
+         * Whether to show QS brightness slider
+         * @hide
+         */
+        @Readable
+        public static final String QS_SHOW_BRIGHTNESS = "qs_show_brightness";
+
+        /**
+         * Whether to show QS brightness slider below the tiles
+         * @hide
+         */
+        @Readable
+        public static final String QS_BRIGHTNESS_POSITION_BOTTOM = "qs_brightness_position_bottom";
+
+        /**
+         * Whether to show QS auto brightness toggle button
+         * @hide
+         */
+        public static final String QS_SHOW_AUTO_BRIGHTNESS_BUTTON = "qs_show_auto_brightness_button";
+
+        /**
+         * Whether to trigger doze for new notifications
+         * @hide
+         */
+        public static final String DOZE_FOR_NOTIFICATIONS = "doze_for_notifications";
+
+        /**
+         * Whether to always show the time on media controls
+         * @hide
+         */
+        public static final String MEDIA_CONTROLS_ALWAYS_SHOW_TIME = "media_controls_always_show_time";
+
+        /**
+         * Whether to always show squiggle progress bar on media controls
+         * @hide
+         */
+        public static final String MEDIA_CONTROLS_SQUIGGLE = "media_controls_squiggle";
+
+        /**
+         * Whether to increase touch sensitivity
+         * @hide
+         */
+        public static final String TOUCH_SENSITIVITY_ENABLED = "touch_sensitivity_enabled";
+
+        /**
+         * Whether to increase touch sensitivity
+         * @hide
+         */
+        public static final String SCREEN_OFF_UDFPS_ENABLED = "screen_off_udfps_enabled";
+
+        /**
+         * Whether to show ambient instead of waking for the dt2w gesture
+         * @hide
+         */
+        public static final String DOZE_DOUBLE_TAP_GESTURE_AMBIENT = "doze_double_tap_gesture_ambient";
+
+        /**
+         * Whether to show ambient instead of waking for the tap gesture
+         * @hide
+         */
+        public static final String DOZE_TAP_GESTURE_AMBIENT = "doze_tap_gesture_ambient";
+
+        /**
+         * Whether to show ambient instead of waking for the pickup gesture
+         * Do note quick pickup (device sensor) is already configured to do that
+         * @hide
+         */
+        public static final String DOZE_PICK_UP_GESTURE_AMBIENT = "doze_pick_up_gesture_ambient";
+
+        /**
+         * Whether to allow the dt2w gesture on ambient
+         * @hide
+         */
+        public static final String DOZE_DOUBLE_TAP_GESTURE_ALLOW_AMBIENT = "doze_double_tap_gesture_allow_ambient";
+
+        /**
+         * Whether to allow the tap gesture on ambient
+         * @hide
+         */
+        public static final String DOZE_TAP_GESTURE_ALLOW_AMBIENT = "doze_tap_gesture_allow_ambient";
+
+        /**
+         * Whether to allow the pickup gesture on ambient
+         * @hide
+         */
+        public static final String DOZE_PICK_UP_GESTURE_ALLOW_AMBIENT = "doze_pick_up_gesture_allow_ambient";
+
+        /**
+         * Whether to vibrate for the dt2w gesture
+         * @hide
+         */
+        public static final String DOZE_DOUBLE_TAP_GESTURE_VIBRATE = "doze_double_tap_gesture_vibrate";
+
+        /**
+         * Whether to vibrate for the tap gesture
+         * @hide
+         */
+        public static final String DOZE_TAP_GESTURE_VIBRATE = "doze_tap_gesture_vibrate";
+
+        /**
+         * Whether to vibrate for the pickup gesture
+         * @hide
+         */
+        public static final String DOZE_PICK_UP_GESTURE_VIBRATE = "doze_pick_up_gesture_vibrate";
+
+        /**
+         * Whether to allow sensitive qs tiles on keyguard
+         * @hide
+         */
+        @Readable
+        public static final String QSTILE_REQUIRES_UNLOCKING = "qstile_requires_unlocking";
+
+        /**
          * These entries are considered common between the personal and the managed profile,
          * since the managed profile doesn't get to change them.
          */
@@ -17150,6 +17450,12 @@ public final class Settings {
          * @hide
          */
         public static final String ONE_HANDED_KEYGUARD_SIDE = "one_handed_keyguard_side";
+
+        /**
+         * Google Hybrid Battery Warnings
+         * @hide
+        */
+        public static final String HYBRID_SYSUI_BATTERY_WARNING_FLAGS = "hybrid_sysui_battery_warning_flags";
 
         /**
          * Global settings that shouldn't be persisted.

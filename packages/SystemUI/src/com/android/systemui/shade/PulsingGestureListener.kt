@@ -16,9 +16,13 @@
 
 package com.android.systemui.shade
 
+import android.content.Context
 import android.hardware.display.AmbientDisplayConfiguration
 import android.os.PowerManager
 import android.os.SystemClock
+import android.os.VibrationAttributes
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.provider.Settings
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -58,10 +62,21 @@ class PulsingGestureListener @Inject constructor(
         tunerService: TunerService,
         dumpManager: DumpManager
 ) : GestureDetector.SimpleOnGestureListener(), Dumpable {
+    private val vibrator: Vibrator
     private var doubleTapEnabled = false
     private var singleTapEnabled = false
+    private var doubleTapEnabledNative = false
+    private var singleTapAmbientEnabled = false
+    private var doubleTapAmbientEnabled = false
+    private var singleTapAmbientAllowed = true
+    private var doubleTapAmbientAllowed = true
+    private var doubleTapVibrate = false
+    private var singleTapVibrate = false
 
     init {
+        vibrator = notificationShadeWindowView.getContext().getSystemService(
+                Context.VIBRATOR_SERVICE) as Vibrator
+
         val tunable = Tunable { key: String?, _: String? ->
             when (key) {
                 Settings.Secure.DOZE_DOUBLE_TAP_GESTURE ->
@@ -70,11 +85,38 @@ class PulsingGestureListener @Inject constructor(
                 Settings.Secure.DOZE_TAP_SCREEN_GESTURE ->
                     singleTapEnabled = ambientDisplayConfiguration.tapGestureEnabled(
                             userTracker.userId)
+                Settings.Secure.DOUBLE_TAP_TO_WAKE ->
+                    doubleTapEnabledNative = Settings.Secure.getIntForUser(
+                            notificationShadeWindowView.getContext().getContentResolver(),
+                            Settings.Secure.DOUBLE_TAP_TO_WAKE, 0, userTracker.userId) == 1
+                Settings.Secure.DOZE_TAP_GESTURE_AMBIENT ->
+                    singleTapAmbientEnabled = ambientDisplayConfiguration.tapGestureAmbient(
+                            userTracker.userId)
+                Settings.Secure.DOZE_DOUBLE_TAP_GESTURE_AMBIENT ->
+                    doubleTapAmbientEnabled = ambientDisplayConfiguration.doubleTapGestureAmbient(
+                            userTracker.userId)
+                Settings.Secure.DOZE_TAP_GESTURE_ALLOW_AMBIENT ->
+                    singleTapAmbientAllowed = ambientDisplayConfiguration.tapGestureOnAmbient(
+                            userTracker.userId)
+                Settings.Secure.DOZE_DOUBLE_TAP_GESTURE_ALLOW_AMBIENT ->
+                    doubleTapAmbientAllowed = ambientDisplayConfiguration.doubleTapGestureOnAmbient(
+                            userTracker.userId)
+                Settings.Secure.DOZE_TAP_GESTURE_VIBRATE ->
+                    doubleTapVibrate = ambientDisplayConfiguration.tapGestureVibrate(
+                            userTracker.userId)
+                Settings.Secure.DOZE_DOUBLE_TAP_GESTURE_VIBRATE ->
+                    singleTapVibrate = ambientDisplayConfiguration.doubleTapGestureVibrate(
+                            userTracker.userId)
             }
         }
         tunerService.addTunable(tunable,
                 Settings.Secure.DOZE_DOUBLE_TAP_GESTURE,
-                Settings.Secure.DOZE_TAP_SCREEN_GESTURE)
+                Settings.Secure.DOZE_TAP_SCREEN_GESTURE,
+                Settings.Secure.DOUBLE_TAP_TO_WAKE,
+                Settings.Secure.DOZE_TAP_GESTURE_AMBIENT,
+                Settings.Secure.DOZE_DOUBLE_TAP_GESTURE_AMBIENT,
+                Settings.Secure.DOZE_TAP_GESTURE_ALLOW_AMBIENT,
+                Settings.Secure.DOZE_DOUBLE_TAP_GESTURE_ALLOW_AMBIENT)
 
         dumpManager.registerDumpable(this)
     }
@@ -82,12 +124,14 @@ class PulsingGestureListener @Inject constructor(
     override fun onSingleTapUp(e: MotionEvent): Boolean {
         val isNotDocked = !dockManager.isDocked
         shadeLogger.logSingleTapUp(statusBarStateController.isDozing, singleTapEnabled, isNotDocked)
-        if (statusBarStateController.isDozing && singleTapEnabled && isNotDocked) {
+        if (statusBarStateController.isDozing && singleTapEnabled && isNotDocked
+                && !singleTapAmbientEnabled && singleTapAmbientAllowed) {
             val proximityIsNotNear = !falsingManager.isProximityNear
             val isNotAFalseTap = !falsingManager.isFalseTap(LOW_PENALTY)
             shadeLogger.logSingleTapUpFalsingState(proximityIsNotNear, isNotAFalseTap)
             if (proximityIsNotNear && isNotAFalseTap) {
                 shadeLogger.d("Single tap handled, requesting centralSurfaces.wakeUpIfDozing")
+                if (singleTapVibrate) wakeVibrate()
                 centralSurfaces.wakeUpIfDozing(
                     SystemClock.uptimeMillis(),
                     "PULSING_SINGLE_TAP",
@@ -109,10 +153,12 @@ class PulsingGestureListener @Inject constructor(
         // checks MUST be on the ACTION_UP event.
         if (e.actionMasked == MotionEvent.ACTION_UP &&
                 statusBarStateController.isDozing &&
-                (doubleTapEnabled || singleTapEnabled) &&
+                (doubleTapEnabled || singleTapEnabled || doubleTapEnabledNative) &&
+                !doubleTapAmbientEnabled && doubleTapAmbientAllowed &&
                 !falsingManager.isProximityNear &&
                 !falsingManager.isFalseDoubleTap
         ) {
+            if (doubleTapVibrate) wakeVibrate()
             centralSurfaces.wakeUpIfDozing(
                     SystemClock.uptimeMillis(),
                     "PULSING_DOUBLE_TAP",
@@ -128,5 +174,16 @@ class PulsingGestureListener @Inject constructor(
         pw.println("doubleTapEnabled=$doubleTapEnabled")
         pw.println("isDocked=${dockManager.isDocked}")
         pw.println("isProxCovered=${falsingManager.isProximityNear}")
+    }
+
+    private fun wakeVibrate() {
+        if (vibrator == null || !vibrator.hasVibrator()) return
+        var effect = VibrationEffect.createWaveform(longArrayOf(0, 100), -1)
+        if (vibrator.areAllEffectsSupported(VibrationEffect.EFFECT_CLICK) ==
+                Vibrator.VIBRATION_EFFECT_SUPPORT_YES) {
+            effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+        }
+        vibrator.vibrate(effect,
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_HARDWARE_FEEDBACK))
     }
 }

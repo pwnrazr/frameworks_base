@@ -18,6 +18,7 @@ package com.android.systemui.statusbar.policy;
 
 import android.annotation.Nullable;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
@@ -247,7 +248,8 @@ public class BluetoothControllerImpl implements BluetoothController, BluetoothCa
         return null;
     }
 
-    private Collection<CachedBluetoothDevice> getDevices() {
+    @Override
+    public Collection<CachedBluetoothDevice> getDevices() {
         return mLocalBluetoothManager != null
                 ? mLocalBluetoothManager.getCachedDeviceManager().getCachedDevicesCopy()
                 : Collections.emptyList();
@@ -356,10 +358,16 @@ public class BluetoothControllerImpl implements BluetoothController, BluetoothCa
     }
 
     public int getBatteryLevel() {
-        if (!mConnectedDevices.isEmpty()) {
-            return mConnectedDevices.get(0).getBatteryLevel();
+        synchronized (mConnectedDevices) {
+            if (mConnectedDevices.isEmpty()) {
+                return BluetoothDevice.BATTERY_LEVEL_UNKNOWN;
+            }
+            return mConnectedDevices.stream()
+                .mapToInt(device -> device.getBatteryLevel())
+                .filter(level -> level != BluetoothDevice.BATTERY_LEVEL_UNKNOWN)
+                .findFirst()
+                .orElse(BluetoothDevice.BATTERY_LEVEL_UNKNOWN);
         }
-        return -1;
     }
 
     private void updateBattery() {

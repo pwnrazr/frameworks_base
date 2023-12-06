@@ -17,10 +17,10 @@
 */
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- Strings for PixelPropUtils -->
-    <string name="build_device"></string>
-    <string name="build_fp"></string>
-    <string name="build_model"></string>
+    <!-- Strings for PixelPropUtils DO NOT TRANSLATE! -->
+    <string name="build_device" translatable="false"></string>
+    <string name="build_fp" translatable="false"></string>
+    <string name="build_model" translatable="false"></string>
 
     <!-- Reboot Confirmation Dialog.  Message in the confirmation dialog
          when the user asks to reboot. [CHAR LIMIT=NONE] -->
@@ -42,12 +42,21 @@
     <!-- Pocket Lock -->
     <string name="pocket_lock_message_long_press">Press and hold power button to unlock</string>
     <string name="pocket_view_title">Pocket mode is on</string>
-    <string name="pocket_view_title_cancel">To use your phone:</string>
-    <string name="pocket_view_top_tag_cancel">Check if the blue area of your phone is clear of any obstructions, and clean off any dirt or dust.</string>
+    <string name="pocket_view_title_cancel">To activate your phone:</string>
+    <string name="pocket_view_top_tag_cancel">Please do not cover the blue area of your phone and clear any dirt or dust off it.</string>
     <string name="pocket_view_top_tag_cancel2">Long press the power button to force quit pocket mode.</string>
     <string name="pocket_view_top_tag_number1" translatable="false">1.\u0020</string>
     <string name="pocket_view_top_tag_number2" translatable="false">2.\u0020</string>
 
     <!-- Cycle through ringer modes -->
     <string name="volume_dialog_ringer_guidance_normal">Calls and notifications will ring</string>
+
+    <!-- Title & summary of notification letting users know that battery saver is now on [CHAR_LIMIT=80] -->
+    <string name="battery_saver_on_notification_title">Battery Saver turned on</string>
+    <string name="battery_saver_on_notification_summary">By schedule. Press to review settings.</string>
+
+    <!-- PowerOffAlarmService -->
+    <string name="notification_channel_poweroff_alarm">Power off alarm</string>
+    <string name="poweroff_alarm_title">Power off alarm set</string>
+    <string name="poweroff_alarm_body">An alarm was detected. You can turn off your phone and it\'ll power on 2 minutes before it\'s due</string>
 </resources>

@@ -28,7 +28,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.display.AmbientDisplayConfiguration;
+import android.os.Looper;
+import android.os.Handler;
 import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.VibrationAttributes;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.format.Formatter;
 import android.util.IndentingPrintWriter;
 import android.util.Log;
@@ -103,9 +109,13 @@ public class DozeTriggers implements DozeMachine.Part {
     private final KeyguardStateController mKeyguardStateController;
     private final UserTracker mUserTracker;
     private final UiEventLogger mUiEventLogger;
+    private final Vibrator mVibrator;
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+    private final int mTapDelay;
 
     private long mNotificationPulseTime;
     private Runnable mAodInterruptRunnable;
+    private Object mTapToken;
 
     /** see {@link #onProximityFar} prox for callback */
     private boolean mWantProxSensor;
@@ -222,6 +232,9 @@ public class DozeTriggers implements DozeMachine.Part {
         mUiEventLogger = uiEventLogger;
         mKeyguardStateController = keyguardStateController;
         mUserTracker = userTracker;
+        mVibrator = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
+        mTapDelay = mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_singleTapDelay);
     }
 
     @Override
@@ -246,7 +259,7 @@ public class DozeTriggers implements DozeMachine.Part {
             return;
         }
         mNotificationPulseTime = SystemClock.elapsedRealtime();
-        if (!mConfig.pulseOnNotificationEnabled(mUserTracker.getUserId())) {
+        if (!mConfig.userPulseOnNotificationEnabled(mUserTracker.getUserId())) {
             runIfNotNull(onPulseSuppressedListener);
             mDozeLog.tracePulseDropped("pulseOnNotificationsDisabled");
             return;
@@ -291,7 +304,8 @@ public class DozeTriggers implements DozeMachine.Part {
     }
 
     @VisibleForTesting
-    void onSensor(int pulseReason, float screenX, float screenY, float[] rawValues) {
+    void onSensor(int pulseReason, boolean sensorPerformedProxCheck,
+            float screenX, float screenY, float[] rawValues) {
         boolean isDoubleTap = pulseReason == DozeLog.REASON_SENSOR_DOUBLE_TAP;
         boolean isTap = pulseReason == DozeLog.REASON_SENSOR_TAP;
         boolean isPickup = pulseReason == DozeLog.REASON_SENSOR_PICKUP;
@@ -308,11 +322,11 @@ public class DozeTriggers implements DozeMachine.Part {
                     mMachine.isExecutingTransition() ? null : mMachine.getState(),
                     pulseReason);
         } else if (isLongPress) {
-            requestPulse(pulseReason, true /* alreadyPerformedProxCheck */,
+            requestPulse(pulseReason, sensorPerformedProxCheck /* alreadyPerformedProxCheck */,
                     null /* onPulseSuppressedListener */);
         } else if (isWakeOnReach || isQuickPickup) {
             if (isWakeDisplayEvent) {
-                requestPulse(pulseReason, true /* alreadyPerformedProxCheck */,
+                requestPulse(pulseReason, sensorPerformedProxCheck /* alreadyPerformedProxCheck */,
                         null /* onPulseSuppressedListener */);
             }
         } else {
@@ -322,9 +336,17 @@ public class DozeTriggers implements DozeMachine.Part {
                     mDozeLog.traceSensorEventDropped(pulseReason, "prox reporting near");
                     return;
                 }
-                if (isDoubleTap || isTap) {
+                if (isDoubleTap || (isTap && mTapDelay <= 0)) {
                     mDozeHost.onSlpiTap(screenX, screenY);
                     gentleWakeUp(pulseReason);
+                } else if (isTap) {
+                    mMainHandler.postDelayed(() -> {
+                        if (screenX != -1 && screenY != -1) {
+                            mDozeHost.onSlpiTap(screenX, screenY);
+                        }
+                        gentleWakeUp(pulseReason);
+                        mTapToken = null;
+                    }, mTapToken, mTapDelay);
                 } else if (isPickup) {
                     if (shouldDropPickupEvent())  {
                         mDozeLog.traceSensorEventDropped(pulseReason, "keyguard occluded");
@@ -348,7 +370,7 @@ public class DozeTriggers implements DozeMachine.Part {
                 } else {
                     mDozeHost.extendPulse(pulseReason);
                 }
-            }, true /* alreadyPerformedProxCheck */, pulseReason);
+            }, sensorPerformedProxCheck /* alreadyPerformedProxCheck */, pulseReason);
         }
 
         if (isPickup && !shouldDropPickupEvent()) {
@@ -364,7 +386,55 @@ public class DozeTriggers implements DozeMachine.Part {
         return mKeyguardStateController.isOccluded();
     }
 
+    private boolean dozeInsteadOfWake(@DozeLog.Reason int reason) {
+        switch (reason) {
+            case DozeLog.REASON_SENSOR_PICKUP:
+                return mConfig.pickupGestureAmbient(mUserTracker.getUserId());
+            case DozeLog.REASON_SENSOR_DOUBLE_TAP:
+                return mConfig.doubleTapGestureAmbient(mUserTracker.getUserId());
+            case DozeLog.REASON_SENSOR_TAP:
+                return mConfig.tapGestureAmbient(mUserTracker.getUserId());
+        }
+        return false;
+    }
+
+    private boolean dropForAmbient(@DozeLog.Reason int reason) {
+        final DozeMachine.State state = mMachine.getState();
+        if (!state.isAlwaysOn() && state != DozeMachine.State.DOZE_PULSING &&
+                state != DozeMachine.State.DOZE_PULSING_BRIGHT)
+            return false;
+        switch (reason) {
+            case DozeLog.REASON_SENSOR_PICKUP:
+                return !mConfig.pickupGestureOnAmbient(mUserTracker.getUserId());
+            case DozeLog.REASON_SENSOR_DOUBLE_TAP:
+                return !mConfig.doubleTapGestureOnAmbient(mUserTracker.getUserId());
+            case DozeLog.REASON_SENSOR_TAP:
+                return !mConfig.tapGestureOnAmbient(mUserTracker.getUserId());
+        }
+        return false;
+    }
+
+    private boolean shouldVibrate(@DozeLog.Reason int reason) {
+        if (mVibrator == null || !mVibrator.hasVibrator())
+            return false;
+        switch (reason) {
+            case DozeLog.REASON_SENSOR_PICKUP:
+                return mConfig.pickupGestureVibrate(mUserTracker.getUserId());
+            case DozeLog.REASON_SENSOR_DOUBLE_TAP:
+                return mConfig.doubleTapGestureVibrate(mUserTracker.getUserId());
+            case DozeLog.REASON_SENSOR_TAP:
+                return mConfig.tapGestureVibrate(mUserTracker.getUserId());
+        }
+        return false;
+    }
+
     private void gentleWakeUp(@DozeLog.Reason int reason) {
+        if (dropForAmbient(reason)) return;
+        if (shouldVibrate(reason)) wakeVibrate();
+        if (dozeInsteadOfWake(reason)) {
+            requestPulse(reason, true, null);
+            return;
+        }
         // Log screen wake up reason (lift/pickup, tap, double-tap)
         Optional.ofNullable(DozingUpdateUiEvent.fromReason(reason))
                 .ifPresent(uiEventEnum -> mUiEventLogger.log(uiEventEnum, getKeyguardSessionId()));
@@ -375,6 +445,16 @@ public class DozeTriggers implements DozeMachine.Part {
             mDozeHost.setAodDimmingScrim(1f);
         }
         mMachine.wakeUp(reason);
+    }
+
+    private void wakeVibrate() {
+        VibrationEffect effect = VibrationEffect.createWaveform(new long[] { 0, 100 }, -1);
+        if (mVibrator.areAllEffectsSupported(VibrationEffect.EFFECT_CLICK) ==
+                Vibrator.VIBRATION_EFFECT_SUPPORT_YES) {
+            effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK);
+        }
+        mVibrator.vibrate(effect,
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_HARDWARE_FEEDBACK));
     }
 
     private void onProximityFar(boolean far) {
