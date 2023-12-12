@@ -61,6 +61,7 @@ public class SystemSettings {
         Settings.System.TTY_MODE,
         Settings.System.MASTER_MONO,
         Settings.System.MASTER_BALANCE,
+        Settings.System.FOLD_LOCK_BEHAVIOR,
         Settings.System.SOUND_EFFECTS_ENABLED,
         Settings.System.HAPTIC_FEEDBACK_ENABLED,
         Settings.System.POWER_SOUNDS_ENABLED,       // moved to global
@@ -136,7 +137,6 @@ public class SystemSettings {
         Settings.System.DOUBLE_TAP_SLEEP_GESTURE,
         Settings.System.VOLUME_BUTTON_MUSIC_CONTROL,
         Settings.System.VOLUME_BUTTON_MUSIC_CONTROL_DELAY,
-        Settings.System.KEYGAURD_MEDIA_ART,
         Settings.System.QS_SHOW_BATTERY_ESTIMATE,
         Settings.System.ENABLE_FLOATING_ROTATION_BUTTON,
         Settings.System.NAVIGATION_BAR_INVERSE,
@@ -150,7 +150,6 @@ public class SystemSettings {
         Settings.System.STATUSBAR_CLOCK_POSITION,
         Settings.System.NOTIFICATION_VIBRATION_PATTERN,
         Settings.System.CUSTOM_NOTIFICATION_VIBRATION_PATTERN,
-        Settings.System.STATUS_BAR_NOTIF_COUNT,
         Settings.System.FLASHLIGHT_ON_CALL,
         Settings.System.FLASHLIGHT_ON_CALL_IGNORE_DND,
         Settings.System.FLASHLIGHT_ON_CALL_RATE,
