@@ -18792,6 +18792,33 @@ public final class Settings {
         public static final String REPAIR_MODE_ACTIVE = "repair_mode_active";
 
         /**
+         * Whether airplane mode enhancement is enabled
+         * <p>
+         * Set to 1 for true and 0 for false.
+         *
+         * @hide
+         */
+        public static final String APM_ENHANCEMENT = "apm_enhancement_enabled";
+
+        /**
+         * Whether {@link #LOW_POWER_MODE} affects High Brightness Mode
+         * <p>
+         * Set to 1 for true and 0 for false.
+         *
+         * @hide
+         */
+        public static final String LOW_POWER_MODE_HBM = "low_power_mode_hbm";
+
+        /**
+         * Whether {@link #LOW_POWER_MODE} affects screen refresh rate
+         * <p>
+         * Set to 1 for true and 0 for false.
+         *
+         * @hide
+         */
+        public static final String LOW_POWER_MODE_DMD = "low_power_mode_dmd";
+
+        /**
          * Settings migrated from Wear OS settings provider.
          * @hide
          */
