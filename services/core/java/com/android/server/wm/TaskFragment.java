@@ -1245,6 +1245,9 @@ class TaskFragment extends WindowContainer<WindowContainer> {
         // appropriate for it.
         mTaskSupervisor.mStoppingActivities.remove(next);
 
+        if (!next.translucentWindowLaunch)
+            next.launching = true;
+
         if (DEBUG_SWITCH) Slog.v(TAG_SWITCH, "Resuming " + next);
 
         mTaskSupervisor.setLaunchSource(next.info.applicationInfo.uid);
@@ -1630,6 +1633,12 @@ class TaskFragment extends WindowContainer<WindowContainer> {
         if (prev == resuming) {
             Slog.wtf(TAG, "Trying to pause activity that is in process of being resumed");
             return false;
+        }
+
+        if (mAtmService.getToastWindow() == true) {
+            // When we have a toast window, that activity will be translucent.
+            prev.translucentWindowLaunch = true;
+            mAtmService.resetToastWindow();
         }
 
         ProtoLog.v(WM_DEBUG_STATES, "Moving to PAUSING: %s", prev);

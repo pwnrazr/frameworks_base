@@ -644,7 +644,7 @@ public final class CachedAppOptimizer {
         mAm = am;
         mProcLock = am.mProcLock;
         mCachedAppOptimizerThread = new ServiceThread("CachedAppOptimizerThread",
-            Process.THREAD_GROUP_SYSTEM, true);
+            Process.THREAD_GROUP_BACKGROUND, true);
         mProcStateThrottle = new HashSet<>();
         mProcessDependencies = processDependencies;
         mTestCallback = callback;
@@ -948,10 +948,9 @@ public final class CachedAppOptimizer {
             }
 
             mCompactionHandler = new MemCompactionHandler();
-
-            Process.setThreadGroupAndCpuset(mCachedAppOptimizerThread.getThreadId(),
-                    Process.THREAD_GROUP_SYSTEM);
         }
+        Process.setThreadGroupAndCpuset(mCachedAppOptimizerThread.getThreadId(),
+                    Process.THREAD_GROUP_BACKGROUND);
     }
 
     /**
@@ -1132,7 +1131,7 @@ public final class CachedAppOptimizer {
                 }
 
                 Process.setThreadGroupAndCpuset(mCachedAppOptimizerThread.getThreadId(),
-                        Process.THREAD_GROUP_SYSTEM);
+                        Process.THREAD_GROUP_BACKGROUND);
             } else {
                 Slog.d(TAG_AM, "Freezer disabled");
                 enableFreezer(false);
@@ -1769,10 +1768,13 @@ public final class CachedAppOptimizer {
 
         private boolean shouldOomAdjThrottleCompaction(ProcessRecord proc) {
             final String name = proc.processName;
+            final ProcessCachedOptimizerRecord opt = proc.mOptRecord;
+            CompactSource compactSource = opt.getReqCompactSource();
 
             // don't compact if the process has returned to perceptible
             // and this is only a cached/home/prev compaction
-            if (proc.mState.getSetAdj() <= ProcessList.PERCEPTIBLE_APP_ADJ) {
+            if (compactSource == CompactSource.APP
+                    && proc.mState.getSetAdj() <= ProcessList.PERCEPTIBLE_APP_ADJ) {
                 if (DEBUG_COMPACTION) {
                     Slog.d(TAG_AM,
                             "Skipping compaction as process " + name + " is "
