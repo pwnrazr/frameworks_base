@@ -16,6 +16,7 @@
 
 package com.android.server.pm;
 
+import android.annotation.ElapsedRealtimeLong;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -189,4 +190,13 @@ public interface PackageManagerLocal {
         @Override
         void close();
     }
+
+    void showDexoptProgressBootMessage(int percentage, int current, int total);
+
+    void onBgDexoptProgressUpdate(@ElapsedRealtimeLong long start, int percentage, int current, int total);
+
+    void onBgDexoptCompleted(
+            // com.android.server.art.model.DexoptResult
+            @Nullable Object dexOptResult,
+            long durationMs);
 }

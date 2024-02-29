@@ -17,13 +17,19 @@
 package com.android.server.pm.local;
 
 import android.annotation.CallSuper;
+import android.annotation.ElapsedRealtimeLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.UserIdInt;
+import android.app.ActivityManager;
 import android.os.Binder;
+import android.os.RemoteException;
 import android.os.UserHandle;
 import android.util.ArrayMap;
+import android.util.Slog;
 
+import com.android.server.art.model.DexoptResult;
+import com.android.server.ext.BgDexoptUi;
 import com.android.server.pm.Computer;
 import com.android.server.pm.PackageManagerLocal;
 import com.android.server.pm.PackageManagerService;
@@ -214,5 +220,32 @@ public class PackageManagerLocalImpl implements PackageManagerLocal {
 
             return mFilteredPackageStates;
         }
+    }
+
+    public void showDexoptProgressBootMessage(int percentage, int current, int total) {
+        final String TAG = "DexoptBootUI";
+
+        String msg = mService.getContext().getString(
+            com.android.internal.R.string.dexopt_progress_msg, percentage, current, total);
+
+        Slog.d(TAG, "msg: " + msg);
+
+        try {
+            ActivityManager.getService().showBootMessage(msg, true);
+        } catch (RemoteException e) {
+            Slog.e(TAG, "", e);
+        }
+    }
+
+    @Override
+    public void onBgDexoptProgressUpdate(@ElapsedRealtimeLong long start, int percentage, int current, int total) {
+        BgDexoptUi.onBgDexoptProgressUpdate(mService, start, percentage, current, total);
+    }
+
+    @Override
+    public void onBgDexoptCompleted(@Nullable Object dexOptResult, long durationMs) {
+        // DexoptResult can't be used as a parameter in PackageManagerLocal interface, it's declared
+        // in libartservice
+        BgDexoptUi.onBgDexoptCompleted(mService, (DexoptResult) dexOptResult, durationMs);
     }
 }
